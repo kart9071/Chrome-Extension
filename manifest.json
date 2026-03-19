@@ -1,0 +1,51 @@
+{
+  "manifest_version": 3,
+  "name": "AADI 2.0 Extensionr",
+  "version": "1.0.0",
+  "description": "AADI 2.0 Caretracker extension for HCC Opportunities and Audit Details",
+  "permissions": [
+    "scripting",
+    "activeTab",
+    "storage"
+  ],
+  "host_permissions": [
+    "https://*.caretracker.com/*"
+  ],
+  "background": {
+    "service_worker": "service_worker.js"
+  },
+  "action": {
+    "default_icon": {
+      "8": "HOM-icon.png"
+      
+    },
+  "default_title": "CareTracker Button Listener"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://*.caretracker.com/*"
+      ],
+      "js": [
+        "contentScript.js"
+      ],
+      "css": [
+        "styles.css"
+      ],
+      "all_frames": true,
+      "run_at": "document_idle"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "fonts/Poppins-Regular.ttf",
+        "HOM_Logo.svg"
+      ],
+      "matches": [
+        "<all_urls>"
+      ]
+    }
+  ],
+  "options_page": "options.html"
+}

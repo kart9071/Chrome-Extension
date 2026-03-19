@@ -1,0 +1,42 @@
+body {
+  font-family: Arial, sans-serif;
+  margin: 20px;
+  background: #f9f9f9;
+  color: #333;
+}
+h2 {
+  color: #007bff;
+}
+section {
+  background: #fff;
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin-bottom: 15px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+}
+section h3 {
+  margin-top: 0;
+  color: #007bff;
+  font-size: 16px;
+}
+section p {
+  margin: 4px 0;
+}
+.medical-condition {
+  border-top: 1px solid #eee;
+  padding-top: 8px;
+  margin-top: 8px;
+}
+button {
+  margin-top: 15px;
+  background: #007bff;
+  color: white;
+  border: none;
+  padding: 8px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.loading {
+  color: #007bff;
+  font-weight: bold;
+}
