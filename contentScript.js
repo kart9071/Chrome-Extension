@@ -866,44 +866,48 @@
 
        .audit-table th:nth-child(3),
        .audit-table td:nth-child(3) {
-         min-width: 120px !important;
-         width: 120px !important;
+         min-width: 50px !important;
+         width: 50px !important;
+         max-width: 50px !important;
        }
 
        .audit-table th:nth-child(4),
        .audit-table td:nth-child(4) {
-         min-width: 120px !important;
-         width: 120px !important;
+         min-width: 50px !important;
+         width: 50px !important;
+         max-width: 50px !important;
        }
 
        .audit-table th:nth-child(5),
        .audit-table td:nth-child(5) {
-         min-width: 80px !important;
-         width: 80px !important;
+        min-width: 50px !important;
+         width: 50px !important;
+         max-width: 50px !important;
        }
 
        .audit-table th:nth-child(6),
        .audit-table td:nth-child(6) {
-         min-width: 110px !important;
-         width: 110px !important;
+         min-width: 80px !important;
+         width: 80px !important;
+         max-width: 80px !important;
        }
 
        .audit-table th:nth-child(7),
        .audit-table td:nth-child(7) {
-         min-width: 100px !important;
-         width: 100px !important;
+      min-width: 90px !important;
+         width: 90px !important;
        }
 
        .audit-table th:nth-child(8),
        .audit-table td:nth-child(8) {
-         min-width: 120px !important;
-         width: 120px !important;
+         min-width: 90px !important;
+         width: 90px !important;
        }
 
        .audit-table th:nth-child(9),
        .audit-table td:nth-child(9) {
-         min-width: 120px !important;
-         width: 120px !important;
+         min-width: 190px !important;
+         width: 90px !important;
        }
 
        .audit-table th:nth-child(10),
@@ -1279,6 +1283,19 @@
     document.head.appendChild(style);
   }
 
+  function getStatusLabel(value) {
+    if (!value) return "Not Applicable";
+
+    const v = value.toLowerCase();
+
+    if (v === "acceptable") return "Compliant";
+    if (v === "delete") return "Non Compliant";
+    if (v === "query required") return "Partially Compliant";
+    if (v === "not applicable") return "Not Applicable";
+
+    return "Not Applicable";
+  }
+
   // Filter medical conditions based on search term
   function filterMedicalConditions() {
     const trimmedSearch = searchTerm.trim();
@@ -1390,7 +1407,7 @@
     } else {
       direction = 'asc';
     }
-  conditionAuditSortConfig = { key, direction };
+    conditionAuditSortConfig = { key, direction };
     showConditionAuditContent();
   }
 
@@ -1491,27 +1508,18 @@
   // Map audit API rows to internal audit data shape
   function mapApiAuditRows(apiRows) {
     if (!Array.isArray(apiRows)) return [];
-    return apiRows.map(a => ({
-      id: a.id || null,
-      conditionName: a.documented_condition || '',
-      accurateCode: a.accurate_code || a.documented_icd_code || '',
-      progressNotes: a.pn_dates ? a.pn_dates.split(',').map(s => s.trim()).filter(Boolean) : [],
-      hccCode: a.hcc_code || '',
-      evidenceStrength: a.evidence_strength || '',
-      auditDate: a.audit_date || '',
-      auditScore: (typeof a.audit_score !== 'undefined' && a.audit_score !== null) ? a.audit_score : 0,
-      // Make sure we also expose fields that might be used directly
-      documented_condition: a.documented_condition || '',
-      documented_icd_code: a.documented_icd_code || '',
-      accurate_code: a.accurate_code || '',
-      hcc_code: a.hcc_code || '',
-      pn_dates: a.pn_dates || '',
-      evidence_strength: a.evidence_strength || '',
-      audit_date: a.audit_date || '',
-      misclassification_details: a.miscls_details || '',
-      radv_compliance_score: a.radv_compliance_score || null,
-      raw: a
-    }));
+    return apiRows.map(a => {
+      const status = a.updated_status || a.marked_as || ""
+      return ({
+        id: a.id || null,
+        "Condition": a.condition_name || '',
+        "ICD-10": a.icd10_code || '',
+        "HCC": a.hcc_code || '',
+        "RxHCC": a.rxhcc_code || '',
+        "Status": getStatusLabel(status) || "NOT APPLICABLE",
+        raw: a,
+      })
+    });
   }
 
   // Fetch audit details and update conditionAuditData
@@ -1520,8 +1528,8 @@
 
     // Normalize payload shapes: apiData may be nested in audit_data.data
     let auditArray = [];
-    if (apiData && apiData.audit_data && Array.isArray(apiData.audit_data.data)) {
-      auditArray = apiData.audit_data.data;
+    if (apiData && apiData.audit_summary_data && Array.isArray(apiData.audit_summary_data.data)) {
+      auditArray = apiData.audit_summary_data.data;
     } else if (apiData && Array.isArray(apiData.data)) {
       auditArray = apiData.data;
     } else if (Array.isArray(apiData)) {
@@ -1532,13 +1540,13 @@
     if (mapped.length) {
       // replace conditionAuditData
       conditionAuditData = mapped;
-      
+
       // Update UI elements with audit API response data (not chart data)
       if (apiData && apiData.member_name) {
         const patientEl = document.getElementById('patientNameDisplay');
         if (patientEl) patientEl.textContent = apiData.member_name;
       }
-      
+
       // Update DOS from audit API response
       if (apiData && apiData.dos) {
         try {
@@ -1549,7 +1557,7 @@
           console.warn('Failed to parse DOS from audit payload', e);
         }
       }
-      
+
       // If audit panel is visible, refresh UI
       if (contentType === 'conditionAudit') {
         try { showConditionAuditContent(); } catch (e) { console.error(e); }
@@ -1694,16 +1702,16 @@
     document.body.appendChild(buttonsDiv);
 
     // Add event listeners
-  // wire up chart button click below
+    // wire up chart button click below
 
     document.getElementById('chartBtn').addEventListener('click', async () => {
       // Check if we're already on chart view and user wants to refresh
       const isAlreadyOnChart = contentType === 'chart' && document.getElementById('chartBtn').classList.contains('active');
-      
+
       // Ensure UI is visible and load chart details using the current member context (tryAutoLoad sets these)
       showPanel('chart');
       const chartContent = document.getElementById('chartContent');
-      
+
       // If already on chart view, force refresh by calling API
       if (isAlreadyOnChart) {
         console.log('🔄 Refreshing chart data for member:', currentMemberId);
@@ -1716,38 +1724,38 @@
         }
         return;
       }
-      
+
       // Check if data is already available for current member (first time opening this view)
       if (medicalConditionsData.length > 0) {
         console.log('📊 Using cached chart data for member:', currentMemberId);
         showChartContent();
-        
+
         // Update the count display
         const countEl = document.getElementById('chartCount');
         if (countEl) countEl.textContent = `[ ${medicalConditionsData.length} ]`;
-        
+
         // Update patient name
         const patientEl = document.getElementById('patientNameDisplay');
         if (patientEl && currentMemberName) {
           patientEl.textContent = currentMemberName;
         }
-        
+
         // Update DOS
         const resultsEl = document.getElementById('chartResultsCount');
         if (resultsEl && currentDos) {
           resultsEl.innerHTML = `<strong>DOS: ${currentDos}</strong>`;
         }
-        
+
         // Update review status from cached API data
         const reviewStatusEl = document.getElementById('reviewStatusHeader');
         if (reviewStatusEl && chartApiData) {
           const status = chartApiData.status;
           const payload = chartApiData.data || chartApiData;
           const analystData = payload && payload.analyst;
-          
+
           let statusText = '';
           let statusColor = '#666';
-          
+
           if (status === 7) {
             statusText = 'Under Analyst Review';
             statusColor = '#ff8c00';
@@ -1766,15 +1774,15 @@
             }
             statusColor = '#28a745';
           }
-          
+
           console.log('📝 Setting cached review status:', { statusText, statusColor, status });
           reviewStatusEl.textContent = statusText;
           reviewStatusEl.style.color = statusColor;
         }
-        
+
         return;
       }
-      
+
       if (chartContent) chartContent.innerHTML = `<div style="padding:20px">Loading chart details...</div>`;
       try {
         // Pass the current cached member context explicitly to the loader
@@ -1792,11 +1800,11 @@
     document.getElementById('conditionAuditBtn').addEventListener('click', async () => {
       // Check if we're already on audit view and user wants to refresh
       const isAlreadyOnAudit = contentType === 'conditionAudit' && document.getElementById('conditionAuditBtn').classList.contains('active');
-      
+
       // Ensure UI is visible
       showPanel('conditionAudit');
       const chartContent = document.getElementById('chartContent');
-      
+
       // If already on audit view, force refresh by calling API
       if (isAlreadyOnAudit) {
         console.log('🔄 Refreshing audit data for member:', currentMemberId);
@@ -1817,7 +1825,7 @@
         }
         return;
       }
-      
+
       // Check if audit data is already available for current member (first time opening this view)
       if (conditionAuditData.length > 0) {
         console.log('🔍 Using cached audit data for member:', currentMemberId);
@@ -1827,7 +1835,7 @@
         // Update patient name display
         const patientEl = document.getElementById('patientNameDisplay');
         if (patientEl) patientEl.textContent = currentMemberName || 'N/A';
-        
+
         // Update DOS display
         const resultsEl = document.getElementById('chartResultsCount');
         if (resultsEl && currentDos) {
@@ -1837,7 +1845,7 @@
         }
         return;
       }
-      
+
       if (chartContent) chartContent.innerHTML = `<div style="padding:20px">Loading audit details...</div>`;
       // show loading state in header count area
       const headerCountEl = document.getElementById('chartResultsCount');
@@ -1861,10 +1869,10 @@
     document.getElementById('mrAnalysisBtn').addEventListener('click', async () => {
       // Check if we're already on MR analysis view and user wants to refresh
       const isAlreadyOnMRAnalysis = contentType === 'mrAnalysis' && document.getElementById('mrAnalysisBtn').classList.contains('active');
-      
+
       showPanel('mrAnalysis');
       const chartContent = document.getElementById('chartContent');
-      
+
       // If already on MR analysis view, force refresh by calling API
       if (isAlreadyOnMRAnalysis) {
         console.log('🔄 Refreshing MR analysis data for member:', currentMemberId);
@@ -1890,22 +1898,22 @@
         }
         return;
       }
-      
+
       // Check if MR analysis data is already available for current member (first time opening this view)
       if (mrAnalysisData && mrAnalysisData.chart_summary && mrAnalysisData.chart_summary.text) {
         console.log('📊 Using cached MR analysis data for member:', currentMemberId);
         showMRAnalysisContent();
         return;
       }
-      
+
       if (chartContent) chartContent.innerHTML = `<div style="padding:20px">Loading MR analysis...</div>`;
-      
+
       const headerCountEl = document.getElementById('chartResultsCount');
       if (headerCountEl) headerCountEl.textContent = 'Loading...';
-      
+
       const patientEl = document.getElementById('patientNameDisplay');
       if (patientEl) patientEl.textContent = 'Loading...';
-      
+
       try {
         isMRAnalysisLoading = true;
         const apiData = await fetchMRAnalysisFromServiceWorker(currentMemberId || '89700511', currentMemberName || 'fd');
@@ -2026,16 +2034,16 @@
         conditionAuditBtn.setAttribute('data-tooltip', 'Audit Details');
       }
       if (chartBtn) chartBtn.setAttribute('data-tooltip', 'HCC Analysis');
-  // Keep title static and show loading state in the bracketed count while data fetches
-  const titleEl = document.getElementById('chartTitle');
-  if (titleEl) titleEl.innerHTML = 'HCC Opportunities <span id="chartCount" style="font-weight:600;margin-left:8px;">[ Loading... ]</span>';
-  // Move the date/metadata to the right-aligned results area.
-  // Keep the left subtitle empty; show "Chart reviewed on {date}" on the right instead.
-  const resultsEl = document.getElementById('chartResultsCount');
-  if (resultsEl) resultsEl.innerHTML = currentDos ? `<strong>DOS:${currentDos}</strong>` : '';
-  // Clear review status when showing panel
-  const reviewStatusEl = document.getElementById('reviewStatusHeader');
-  if (reviewStatusEl) reviewStatusEl.textContent = '';
+      // Keep title static and show loading state in the bracketed count while data fetches
+      const titleEl = document.getElementById('chartTitle');
+      if (titleEl) titleEl.innerHTML = 'HCC Opportunities <span id="chartCount" style="font-weight:600;margin-left:8px;">[ Loading... ]</span>';
+      // Move the date/metadata to the right-aligned results area.
+      // Keep the left subtitle empty; show "Chart reviewed on {date}" on the right instead.
+      const resultsEl = document.getElementById('chartResultsCount');
+      if (resultsEl) resultsEl.innerHTML = currentDos ? `<strong>DOS:${currentDos}</strong>` : '';
+      // Clear review status when showing panel
+      const reviewStatusEl = document.getElementById('reviewStatusHeader');
+      if (reviewStatusEl) reviewStatusEl.textContent = '';
       // patient name display updated when data loads
       showChartContent();
     } else if (type === 'conditionAudit') {
@@ -2106,7 +2114,7 @@
       // Replace medicalConditionsData contents with mapped results
       medicalConditionsData.length = 0;
       Array.prototype.push.apply(medicalConditionsData, mapped);
-  isChartLoading = false;
+      isChartLoading = false;
       // Update patient name and chart count if member info available
       const patientEl = document.getElementById('patientNameDisplay');
       if (payload && payload.member) {
@@ -2115,7 +2123,7 @@
       } else if (memberName && patientEl) {
         patientEl.textContent = memberName;
       }
-  // Extract DOS (date of service) from payload.appointment.DOS and format for subtitle
+      // Extract DOS (date of service) from payload.appointment.DOS and format for subtitle
       try {
         const dosIso = payload && payload.appointment && (payload.appointment.DOS || payload.appointment.dos);
         if (dosIso) {
@@ -2135,42 +2143,42 @@
       } catch (e) {
         console.warn('Failed to parse DOS from chart payload', e);
       }
-  // Update review status header based on API response status
-  const reviewStatusEl = document.getElementById('reviewStatusHeader');
-  if (reviewStatusEl && apiData) {
-    const status = apiData.status;
-    const analystData = payload && payload.analyst;
-    
-    let statusText = '';
-    let statusColor = '#666';
-    
-    if (status === 7) {
-      statusText = 'Under Analyst Review';
-      statusColor = '#ff8c00'; // orangish color
-    } else if (status === 12) {
-      if (analystData && analystData.Fname && analystData.Lname) {
-        statusText = `Reviewed by ${analystData.Fname} ${analystData.Lname}`;
-      } else {
-        statusText = 'Reviewed by Analyst';
-      }
-      statusColor = '#007bff'; // blue color
-    } else if (status === 13) {
-      if (analystData && analystData.Fname && analystData.Lname) {
-        statusText = `Reviewed by ${analystData.Fname} ${analystData.Lname}`;
-      } else {
-        statusText = 'Reviewed by Analyst';
-      }
-      statusColor = '#28a745'; // green color
-    }
-    
-    reviewStatusEl.textContent = statusText;
-    reviewStatusEl.style.color = statusColor;
-  }
+      // Update review status header based on API response status
+      const reviewStatusEl = document.getElementById('reviewStatusHeader');
+      if (reviewStatusEl && apiData) {
+        const status = apiData.status;
+        const analystData = payload && payload.analyst;
 
-  // Refresh UI and update the bracketed count
-  updateChartContent();
-  const countEl = document.getElementById('chartCount');
-  if (countEl) countEl.textContent = `[ ${medicalConditionsData.length} ]`;
+        let statusText = '';
+        let statusColor = '#666';
+
+        if (status === 7) {
+          statusText = 'Under Analyst Review';
+          statusColor = '#ff8c00'; // orangish color
+        } else if (status === 12) {
+          if (analystData && analystData.Fname && analystData.Lname) {
+            statusText = `Reviewed by ${analystData.Fname} ${analystData.Lname}`;
+          } else {
+            statusText = 'Reviewed by Analyst';
+          }
+          statusColor = '#007bff'; // blue color
+        } else if (status === 13) {
+          if (analystData && analystData.Fname && analystData.Lname) {
+            statusText = `Reviewed by ${analystData.Fname} ${analystData.Lname}`;
+          } else {
+            statusText = 'Reviewed by Analyst';
+          }
+          statusColor = '#28a745'; // green color
+        }
+
+        reviewStatusEl.textContent = statusText;
+        reviewStatusEl.style.color = statusColor;
+      }
+
+      // Refresh UI and update the bracketed count
+      updateChartContent();
+      const countEl = document.getElementById('chartCount');
+      if (countEl) countEl.textContent = `[ ${medicalConditionsData.length} ]`;
     } catch (err) {
       console.error('Failed to fetch chart details:', err);
       isChartLoading = false;
@@ -2243,7 +2251,7 @@
   }
 
   function updateChartContent() {
-  const filteredConditions = filterMedicalConditions();
+    const filteredConditions = filterMedicalConditions();
 
     // Prefer scoping to the panel's chartContent to avoid collisions and to handle dynamic inserts
     const chartContent = document.getElementById('chartContent');
@@ -2255,7 +2263,7 @@
     if (!scrollContainer) scrollContainer = document.querySelector('.medical-conditions-scroll');
     if (!resultsCount) resultsCount = document.querySelector('.search-results-count');
 
-  // Scroll/result count presence checked above
+    // Scroll/result count presence checked above
 
     // If not found, attempt to (re)create the chart content structure and re-query
     if (!scrollContainer || !resultsCount) {
@@ -2265,7 +2273,7 @@
       const newChartContent = document.getElementById('chartContent');
       scrollContainer = newChartContent ? newChartContent.querySelector('.medical-conditions-scroll') : scrollContainer;
       resultsCount = newChartContent ? newChartContent.querySelector('.search-results-count') : resultsCount;
-  // after recreate - presence flags available in scrollContainer/resultsCount
+      // after recreate - presence flags available in scrollContainer/resultsCount
     }
 
     if (!scrollContainer) {
@@ -2420,20 +2428,54 @@
     }
   }
 
+  function formatToMMDDYYYY(dateStr) {
+    if (!dateStr) return '';
+
+    const date = new Date(dateStr);
+
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const year = date.getFullYear();
+
+    return `${month}/${day}/${year}`;
+  }
+
 
   // Helper function to render expanded row details
   function renderExpandedAuditDetails(row) {
     const raw = row.raw || {};
-    const suggestedCode = row.accurate_code || raw.accurate_code || '';
+    const { all_encounter_dates, exclusion_violation = "", marked_as = null, updated_status = null, overall_recommendation = "", coding_issues = "", terminology_variation = "", user_last_updated = "", consistency_explanation = "", } = raw
+    const encounterDates = all_encounter_dates.join(", ") || "";
+    const updatedDate = user_last_updated?.length > 0 ? formatToMMDDYYYY(user_last_updated) : ""
+    const markedStatus = getStatusLabel(marked_as);
+    const updatedStatus = getStatusLabel(updated_status)
+
     const details = [
-      { label: 'Suggested Code', value: suggestedCode },
-      { label: 'RADV Concerns', value: raw.radv_concerns },
-      { label: 'Diagnosis Criteria Gaps', value: raw.diag_criteria_gaps },
-      { label: 'CI Gaps', value: raw.ci_gaps },
-      { label: 'Contradictory Evidence', value: raw.contradictory_evidence },
-      { label: 'Misclassification Analysis', value: row.misclassification_details || raw.miscls_details },
-      { label: 'Rationale', value: raw.rationale },
-      
+      ...(encounterDates?.length > 0
+        ? [{ label: 'Encounter Dates', value: encounterDates }]
+        : []),
+      ...(consistency_explanation?.length > 0
+        ? [{ label: 'Consistency Explanation', value: consistency_explanation }]
+        : []),
+      ...(exclusion_violation?.length > 0
+        ? [{ label: 'Exclusion Violation', value: exclusion_violation }]
+        : []),
+
+      ...(terminology_variation?.length > 0
+        ? [{ label: 'Terminology Variation', value: terminology_variation }]
+        : []),
+      ...(coding_issues?.length > 0
+        ? [{ label: 'Coding Issues', value: coding_issues }]
+        : []),
+
+      ...(overall_recommendation?.length > 0
+        ? [{ label: 'Overall Recommendation', value: overall_recommendation }]
+        : []),
+      ...(updatedDate?.length > 0
+        ? [{
+          label: 'Status Update', value: `Marked as ${markedStatus} \n Updated on ${updatedDate} as ${updatedStatus} During manual review`
+        }]
+        : []),
     ];
 
     const validDetails = details.filter(item =>
@@ -2465,13 +2507,13 @@
   window.toggleAuditRowExpand = function (rowId) {
     const idStr = String(rowId);
     console.log('🔄 toggleAuditRowExpand called with:', idStr);
-    
+
     // Ensure expandedAuditRows exists
     if (!window.expandedAuditRows) {
       window.expandedAuditRows = new Set();
       console.log('📝 Created new expandedAuditRows Set');
     }
-    
+
     const wasExpanded = window.expandedAuditRows.has(idStr);
     if (wasExpanded) {
       window.expandedAuditRows.delete(idStr);
@@ -2480,7 +2522,7 @@
       window.expandedAuditRows.add(idStr);
       console.log('📈 Expanded row:', idStr);
     }
-    
+
     console.log('🔍 Current expanded rows:', Array.from(window.expandedAuditRows));
     showConditionAuditContent();
   };
@@ -2489,7 +2531,7 @@
     console.log('🔍 showConditionAuditContent called, conditionAuditData length:', conditionAuditData.length);
     const chartContent = document.getElementById('chartContent');
     console.log('🔍 chartContent element found:', !!chartContent);
-    
+
     // Filter data first
     let filteredData = filterConditionAuditData();
     // Sort data if needed
@@ -2510,11 +2552,12 @@
       const isExpanded = window.expandedAuditRows && window.expandedAuditRows.has(rowId);
       console.log(`🔍 Row ${rowId}: isExpanded=${isExpanded}, expandedRows=${Array.from(window.expandedAuditRows || [])}`);
       const raw = row.raw || {};
-    const documentedCode = row.documented_icd_code || '';
-    const hccCode = row.hcc_code || row.hccCode || '';
-    const evidenceStrength = row.evidence_strength || row.evidenceStrength || '';
-    const pnDates = row.pn_dates || raw.pn_dates || '';
-    // PN DOS moved to main table, Suggested Code moved to expanded details
+      const icdCode = row["ICD-10"] || '';
+      const hccCode = row["HCC"] || '';
+      const rxHccCode = row["RxHCC"] || '';
+      const Status = row["Status"] || '';
+      const pnDates = row.pn_dates || raw.pn_dates || '';
+      // PN DOS moved to main table, Suggested Code moved to expanded details
 
       return `
         <tr class="${isExpanded ? 'expanded' : ''}">
@@ -2523,11 +2566,11 @@
               <span class="expand-chevron" style="display:inline-block;transition:transform 0.2s;transform:${isExpanded ? 'rotate(180deg)' : 'rotate(0deg)'}">▼</span>
             </button>
           </td>
-          <td class="condition-name-col">${escapeHtml(row.conditionName || row.documented_condition || '')}</td>
-          <td class="text-center">${escapeHtml(documentedCode)}</td>
-          <td class="text-center">${escapeHtml(pnDates)}</td>
-          <td class="text-center">${escapeHtml(hccCode)}</td>
-          <td>${escapeHtml(evidenceStrength)}</td>
+          <td class="condition-name-col">${escapeHtml(row.Condition || '')}</td>
+          <td>${escapeHtml(icdCode)}</td>
+          <td>${escapeHtml(hccCode)}</td>
+          <td>${escapeHtml(rxHccCode)}</td>
+          <td>${escapeHtml(Status)}</td>
         </tr>
         ${isExpanded ? `
         <tr class="audit-expanded-row">
@@ -2555,11 +2598,11 @@
                 <thead>
                   <tr>
                     <th></th>
-                    <th>Condition Name</th>
-                    <th>Documented Code</th>
-                    <th>Encounter Dates</th>
+                    <th>Condition</th>
+                    <th>ICD-10</th>
                     <th>HCC</th>
-                    <th>Evidence</th>
+                    <th>RxHCC</th>
+                    <th>Status</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -2575,11 +2618,11 @@
     console.log('🔍 Setting chartContent.innerHTML, tableHtml length:', tableHtml.length);
     chartContent.innerHTML = tableHtml;
     console.log('🔍 chartContent.innerHTML set successfully');
-    
+
     // Force DOM reflow to ensure rendering
     const height = chartContent.offsetHeight;
     console.log('🔍 Forced DOM reflow completed, height:', height);
-    
+
     // Debug: Check if expanded rows are actually in the DOM and visible
     const expandedRows = chartContent.querySelectorAll('.audit-expanded-row');
     console.log('🔍 Expanded rows in DOM:', expandedRows.length);
@@ -2587,7 +2630,7 @@
       const computedStyle = window.getComputedStyle(row);
       console.log(`🔍 Expanded row ${index} - display: ${computedStyle.display}, visibility: ${computedStyle.visibility}, height: ${computedStyle.height}`);
     });
-    
+
     // Debug: Check if expanded content is in the HTML
     if (window.expandedAuditRows && window.expandedAuditRows.size > 0) {
       const expandedRowsInHtml = tableHtml.includes('audit-expanded-row');
@@ -2623,14 +2666,14 @@
             console.log('🔽 Toggling audit row:', rowId);
             const wasExpanded = window.expandedAuditRows && window.expandedAuditRows.has(rowId);
             window.toggleAuditRowExpand(rowId);
-            
+
             // After expansion, scroll to make the expanded content visible
             if (!wasExpanded) {
               setTimeout(() => {
                 const expandedRow = chartContent.querySelector('.audit-expanded-row');
                 if (expandedRow) {
-                  expandedRow.scrollIntoView({ 
-                    behavior: 'smooth', 
+                  expandedRow.scrollIntoView({
+                    behavior: 'smooth',
                     block: 'nearest',
                     inline: 'nearest'
                   });
@@ -2647,7 +2690,7 @@
   // Show MR Analysis content
   function showMRAnalysisContent() {
     const chartContent = document.getElementById('chartContent');
-    
+
     if (!mrAnalysisData || !mrAnalysisData.chart_summary || !mrAnalysisData.chart_summary.text) {
       chartContent.innerHTML = `
         <div style="text-align: center; padding: 40px 20px; color: #6c757d;">
@@ -2676,7 +2719,7 @@
 
     // Parse and render the complete MR analysis
     const analysisHtml = parseMRAnalysisContent(mrAnalysisData.chart_summary.text);
-    
+
     chartContent.innerHTML = `
       <div class="mr-analysis-section" style="max-height: calc(100vh - 85px); overflow-y: auto; padding-right: 8px; padding-left: 15px;">
         <div class="analysis-content" style="font-size: 11px; line-height: 1.4; padding:10px !important;">
@@ -2684,7 +2727,7 @@
         </div>
       </div>
     `;
-    
+
     // Add custom scrollbar styling
     const style = document.createElement('style');
     style.textContent = `
@@ -2718,19 +2761,19 @@
 
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i];
-      
+
       // Check if we've found the Historical Substance Use Analysis section
       if (line.includes('Historical Substance Use Analysis')) {
         foundHistoricalSection = true;
       }
-      
+
       // Stop parsing after completing the Historical Substance Use Analysis table
-      if (foundHistoricalSection && completedHistoricalTable && 
-          (line.startsWith('###') || line.includes('CODE CANDIDATE ANALYSIS'))) {
+      if (foundHistoricalSection && completedHistoricalTable &&
+        (line.startsWith('###') || line.includes('CODE CANDIDATE ANALYSIS'))) {
         break;
       }
-      
-      if (line.startsWith('## ')|| line.startsWith('### ') || line.startsWith('# ')) {
+
+      if (line.startsWith('## ') || line.startsWith('### ') || line.startsWith('# ')) {
         // Flush any pending table
         if (inTable) {
           html += renderMRAnalysisTable(tableHeaders, tableRows);
@@ -2764,11 +2807,11 @@
         // Subsection header
         const subsectionTitle = line.substring(2, line.length - 2).trim();
         html += `<div class="subsection-name" style="font-size: 14px; font-weight: 600; color: #374151; background: #f3f4f6; padding: 6px 10px; border-left: 3px solid #6b7280; margin: 8px 0 3px 0;">${escapeHtml(subsectionTitle)}</div>`;
-        
+
       } else if (line.trim().startsWith('|') && line.trim().endsWith('|')) {
         // Table row
         const cells = line.split('|').map(cell => cell.trim()).filter(cell => cell !== '');
-        
+
         if (!inTable) {
           // First row is headers
           tableHeaders = cells;
@@ -2779,13 +2822,13 @@
         } else {
           // Data row
           tableRows.push(cells);
-          
+
           // If we're in the Historical Substance Use Analysis section and have data rows, mark as completed
           if (foundHistoricalSection && tableRows.length > 0) {
             completedHistoricalTable = true;
           }
         }
-        
+
       } else if (line.trim().startsWith('- ')) {
         // Flush any pending table
         if (inTable) {
@@ -2799,7 +2842,7 @@
         const isTitle = listContent.includes('**:');
         const className = isTitle ? 'list-title' : '';
         html += `<ul class="content-list" style="margin: 8px 0; padding-left: 16px;"><li class="${className}" style="margin-bottom: 6px; line-height: 1.4; color: #374151; font-size: 13px;">${formatMRAnalysisText(listContent)}</li></ul>`;
-        
+
       } else if (line.trim() === '') {
         // Flush any pending table
         if (inTable) {
@@ -2810,7 +2853,7 @@
         }
         // Empty line
         html += '<div style="height: 8px;"></div>';
-        
+
       } else if (line.trim() !== '' && !inTable) {
         // Regular text content
         html += `<div class="text-content" style="line-height: 1.5; color: #374151; margin: 8px 0; font-size: 13px;">${formatMRAnalysisText(line)}</div>`;
@@ -2830,7 +2873,7 @@
         </div>
       `;
     }
-    
+
     return html;
   }
 
@@ -2842,7 +2885,7 @@
 
     let html = '<div class="table-container" style="padding-top: .5rem !important;overflow: auto !important; border-color: hsl(var(--border)); border-radius: 6px; border: 0 solid #e5e7eb; box-sizing: border-box;">';
     html += '<table class="data-table" style="width: 100%; font-size: 11px;">';
-    
+
     // Headers
     html += '<thead style="background: #f8f9fa;"><tr>';
     headers.forEach(header => {
@@ -2856,17 +2899,17 @@
       html += `<tr style="background: white; border-bottom: 2px solid #dee2e6;">`;
       row.forEach((cell, cellIndex) => {
         const isCodeColumn = headers[cellIndex] && (
-          headers[cellIndex].toLowerCase().includes('icd') || 
+          headers[cellIndex].toLowerCase().includes('icd') ||
           headers[cellIndex].toLowerCase().includes('code') ||
           headers[cellIndex].toLowerCase().includes('hcc')
         );
-        
+
         let cellStyle = 'padding: .5rem !important; --tw-border-opacity: 1 !important; border-color: rgb(226 232 240 / var(--tw-border-opacity, 1)); line-height: 1rem !important; font-size: .75rem !important; color: rgb(30 41 59 / var(--tw-text-opacity, 1)); vertical-align: top !important; border-right-width: 1px !important; border: 0 solid #e5e7eb;box-sizing: border-box;';
-        
+
         if (isCodeColumn) {
           cellStyle += ' font-family: "Courier New", monospace; font-weight: 600; color: #000000ff;';
         }
-        
+
         html += `<td style="${cellStyle}">${formatMRAnalysisText(cell)}</td>`;
       });
       html += '</tr>';
@@ -2880,13 +2923,13 @@
   // Format text with bold and line breaks for MR Analysis
   function formatMRAnalysisText(text) {
     if (!text) return '';
-    
+
     // Handle line breaks
     text = text.replace(/<br\s*\/?>/gi, '<br>');
-    
+
     // Handle bold text
     text = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-    
+
     return escapeHtml(text).replace(/&lt;br&gt;/g, '<br>').replace(/&lt;strong&gt;(.*?)&lt;\/strong&gt;/g, '<strong>$1</strong>');
   }
 
@@ -2902,8 +2945,8 @@
 
     // const chartNumber = chartNumberEl ? (chartNumberEl.textContent || chartNumberEl.getAttribute('data-chart-number') || '').trim() : '';
     // const patientName = patientNameEl ? (patientNameEl.textContent || '').trim() : '';
-    const chartNumber= window.prompt("enter the chart number");
-    const patientName= window.prompt("enter the patient name");
+    const chartNumber = window.prompt("enter the chart number");
+    const patientName = window.prompt("enter the patient name");
     // const table = document.querySelector(TABLE_SELECTOR);
     // const ul = document.querySelector(UL_SELECTOR);
     // if (!table || !ul) return;
@@ -2911,7 +2954,7 @@
     // const chartNumber = document.querySelector("#chartNumber")?.textContent?.trim();
     // const patientName = document.querySelector("#patientName")?.textContent?.trim();
 
-    
+
     if (!chartNumber || !patientName) {
       // Nothing to auto-load yet; wait for DOM mutations
       return;
@@ -2930,10 +2973,10 @@
 
     // Pre-load data from all APIs asynchronously
     console.log('🔄 Pre-loading data for member:', chartNumber, patientName);
-    
+
     // Ensure UI elements are created before updating them and wait for DOM
     await new Promise(resolve => setTimeout(resolve, 100));
-    
+
     try {
       // Call all APIs in parallel to pre-load data
       const [chartResponse, auditResponse, mrAnalysisResponse] = await Promise.allSettled([
@@ -2950,7 +2993,7 @@
         const payload = apiData && apiData.data ? apiData.data : apiData;
         const apiConditions = payload && payload.medical_conditions ? payload.medical_conditions : [];
         const mapped = mapApiMedicalConditions(apiConditions);
-        
+
         // Replace medicalConditionsData contents with mapped results
         medicalConditionsData.length = 0;
         Array.prototype.push.apply(medicalConditionsData, mapped);
@@ -2964,7 +3007,7 @@
             if (patientEl) patientEl.textContent = name;
           }
         }
-        
+
         // Extract DOS from payload and update UI
         try {
           const dosIso = payload && payload.appointment && (payload.appointment.DOS || payload.appointment.dos);
@@ -2978,7 +3021,7 @@
         } catch (e) {
           console.warn('Failed to parse DOS from chart payload', e);
         }
-        
+
         // Update review status header based on API response status
         const reviewStatusEl = document.getElementById('reviewStatusHeader');
         console.log('🔍 Debug review status:', {
@@ -2988,14 +3031,14 @@
           analystData: payload?.analyst,
           fullApiData: apiData
         });
-        
+
         if (reviewStatusEl && apiData) {
           const status = apiData.status;
           const analystData = payload && payload.analyst;
-          
+
           let statusText = '';
           let statusColor = '#666';
-          
+
           if (status === 7) {
             statusText = 'Under Analyst Review';
             statusColor = '#ff8c00'; // orangish color
@@ -3014,7 +3057,7 @@
             }
             statusColor = '#28a745'; // green color
           }
-          
+
           console.log('📝 Setting review status:', { statusText, statusColor, status });
           reviewStatusEl.textContent = statusText;
           reviewStatusEl.style.color = statusColor;
@@ -3024,11 +3067,11 @@
             apiData: !!apiData
           });
         }
-        
+
         // Update chart count if on chart view
         const countEl = document.getElementById('chartCount');
         if (countEl) countEl.textContent = `[ ${medicalConditionsData.length} ]`;
-        
+
       } else {
         console.warn('⚠️ Chart details pre-load failed:', chartResponse.reason);
       }
@@ -3037,13 +3080,13 @@
       if (auditResponse.status === 'fulfilled') {
         console.log('✅ Audit details pre-loaded successfully');
         const apiData = auditResponse.value;
-        
+
         // Extract member name from audit response (override if available)
         if (apiData && apiData.member_name) {
           currentMemberName = apiData.member_name;
           console.log('📝 Updated member name from audit API:', currentMemberName);
         }
-        
+
         // Extract DOS from audit response (override if available)
         if (apiData && apiData.dos) {
           try {
@@ -3054,7 +3097,7 @@
             console.warn('Failed to parse DOS from audit payload', e);
           }
         }
-        
+
         // Normalize payload shapes: apiData may be nested in audit_data.data
         let auditArray = [];
         if (apiData && apiData.audit_data && Array.isArray(apiData.audit_data.data)) {
@@ -3079,7 +3122,7 @@
       }
 
       console.log('🎉 Data pre-loading completed');
-      
+
     } catch (error) {
       console.error('❌ Error during data pre-loading:', error);
     }
