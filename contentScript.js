@@ -1552,7 +1552,7 @@
         try {
           const formatted = new Date(apiData.dos).toLocaleDateString();
           const resultsEl = document.getElementById('chartResultsCount');
-          if (resultsEl) resultsEl.innerHTML = `<strong>DOS:> ${formatted}</strong>`;
+          if (resultsEl) resultsEl.innerHTML = `<strong>DOS: ${formatted}</strong>`;
         } catch (e) {
           console.warn('Failed to parse DOS from audit payload', e);
         }
@@ -1572,34 +1572,40 @@
     }
   }
 
-  // Map API medical_conditions -> internal medicalConditionsData shape
+  
+
   function mapApiMedicalConditions(apiConditions) {
     if (!Array.isArray(apiConditions)) return [];
     return apiConditions.map((c, idx) => {
       return {
-        id: c.id || idx,
-        title: c.condition_name || c.diagnosis || 'Unknown condition',
-        icon: c.isChronic ? '🩺' : '📌',
+        id: c.id || '',
+        title: c.cn  || c.dx || 'Unknown condition',
+        icon:'🩺',
+        // icon: c.isChronic ? '🩺' : '📌',
         details: {
-          icd10: (c.icd_code || '').toString(),
-          hcc24: c.hcc_v24 || c.hcc24 || null,
-          hcc28: c.hcc_v28 || c.hcc28 || null,
-          rxHcc: c.rx_hcc || c.rxHcc || null,
-          source: c.documented_in || c.source || '',
-          note: !!(c.analyst_notes || c.query),
-          active: !!c.isChronic,
-          code_type: c.code_status || '',
-          RADV_score: c.RADV_score || c.radv_score || 0,
-          code_status: c.code_status || '',
-          date: c.last_documented_date || null
+          icd10: (c.icd || '').toString(),
+          // hcc24: c.hcc_v24 || c.hcc24 || null,
+          hcc24: 'hcc' || null,
+          hcc28: c.v28 ||  null,
+          rxHcc: c.rx || null,
+          source: c.di || '',
+          note: !!(c.a_nt || c.qr),
+          // active: !!c.isChronic,
+          active: true,
+          code_type: c.cs || '',
+          // RADV_score: c.RADV_score || c.radv_score || 0,
+          RADV_score : 1 || 0,
+          code_status: c.cs || '',
+          date: c.ldd || null
         },
-        description: c.code_explanation || '',
-        clinicalIndicators: c.clinical_indicators || '',
-        codeExplanation: c.query || '',
-        noteText: c.analyst_notes || null
+        description: c.ce || '',
+        clinicalIndicators: c.ci || '',
+        codeExplanation: c.qr  || '',
+        noteText: c.a_nt || null
       };
     });
   }
+
 
 
   // Create floating buttons
@@ -2078,6 +2084,123 @@
   }
 
 
+  // async function showChartDetails(memberIdArg, memberNameArg) {
+  //   // Accept optional memberId/memberName arguments. If not provided, fall back to the
+  //   // cached `currentMemberId`/`currentMemberName` (set by tryAutoLoad) and lastly try to
+  //   // infer values from the page DOM.
+  //   let memberId = memberIdArg || null;
+  //   let memberName = memberNameArg || '';
+
+  //   // Show loading UI while fetching
+  //   showPanel('chart');
+  //   isChartLoading = true;
+  //   // show a loading placeholder in the content area
+  //   const chartContent = document.getElementById('chartContent');
+  //   if (chartContent) {
+  //     chartContent.innerHTML = `<div style="padding:20px">Loading chart details...</div>`;
+  //   }
+  //   // update header count to show loading state
+  //   const headerCountEl = document.getElementById('chartResultsCount');
+  //   if (headerCountEl) headerCountEl.textContent = 'Loading...';
+  //   // clear review status during loading
+  //   const reviewStatusEl = document.getElementById('reviewStatusHeader');
+  //   if (reviewStatusEl) reviewStatusEl.textContent = '';
+
+  //   try {
+  //     const apiData = await fetchChartDetailsFromServiceWorker(memberId, memberName);
+  //     chartApiData = apiData; // Cache the full API response
+  //     // The service worker returns a wrapper { status, message, data }
+  //     const payload = apiData && apiData.data ? apiData.data : apiData;
+  //     const apiConditions = payload && payload.medical_conditions ? payload.medical_conditions : [];
+
+
+  //     const mapped = mapApiMedicalConditions(apiConditions);
+
+
+  //     // Replace medicalConditionsData contents with mapped results
+  //     medicalConditionsData.length = 0;
+  //     Array.prototype.push.apply(medicalConditionsData, mapped);
+  //     isChartLoading = false;
+  //     // Update patient name and chart count if member info available
+  //     const patientEl = document.getElementById('patientNameDisplay');
+  //     if (payload && payload.member) {
+  //       const name = `${payload.member.fname || ''} ${payload.member.lname || ''}`.trim();
+  //       if (name && patientEl) patientEl.textContent = name;
+  //     } else if (memberName && patientEl) {
+  //       patientEl.textContent = memberName;
+  //     }
+  //     // Extract DOS (date of service) from payload.appointment.DOS and format for subtitle
+  //     try {
+  //       const dosIso = payload && payload.appointment && (payload.appointment.DOS || payload.appointment.dos);
+  //       if (dosIso) {
+  //         const formatted = new Date(dosIso).toLocaleDateString();
+  //         currentDos = formatted;
+  //         // Put the date on the right-aligned results element instead of the left subtitle
+  //         const resultsElDos = document.getElementById('chartResultsCount');
+  //         if (resultsElDos) resultsElDos.innerHTML = `<strong>DOS: ${formatted}</strong> }`;
+  //         const sub = document.getElementById('chartSubTitle');
+  //         if (sub) sub.textContent = '';
+  //       } else {
+  //         const resultsElDos = document.getElementById('chartResultsCount');
+  //         if (resultsElDos) resultsElDos.textContent = '';
+  //         const sub = document.getElementById('chartSubTitle');
+  //         if (sub) sub.textContent = '';
+  //       }
+  //     } catch (e) {
+  //       console.warn('Failed to parse DOS from chart payload', e);
+  //     }
+  //     // Update review status header based on API response status
+  //     const reviewStatusEl = document.getElementById('reviewStatusHeader');
+  //     if (reviewStatusEl && apiData) {
+  //       const status = apiData.status;
+  //       const analystData = payload && payload.analyst;
+
+  //       let statusText = '';
+  //       let statusColor = '#666';
+
+  //       if (status === 7) {
+  //         statusText = 'Under Analyst Review';
+  //         statusColor = '#ff8c00'; // orangish color
+  //       } else if (status === 12) {
+  //         if (analystData && analystData.Fname && analystData.Lname) {
+  //           statusText = `Reviewed by ${analystData.Fname} ${analystData.Lname}`;
+  //         } else {
+  //           statusText = 'Reviewed by Analyst';
+  //         }
+  //         statusColor = '#007bff'; // blue color
+  //       } else if (status === 13) {
+  //         if (analystData && analystData.Fname && analystData.Lname) {
+  //           statusText = `Reviewed by ${analystData.Fname} ${analystData.Lname}`;
+  //         } else {
+  //           statusText = 'Reviewed by Analyst';
+  //         }
+  //         statusColor = '#28a745'; // green color
+  //       }
+
+  //       reviewStatusEl.textContent = statusText;
+  //       reviewStatusEl.style.color = statusColor;
+  //     }
+
+  //     // Refresh UI and update the bracketed count
+  //     updateChartContent();
+  //     const countEl = document.getElementById('chartCount');
+  //     if (countEl) countEl.textContent = `[ ${medicalConditionsData.length} ]`;
+  //   } catch (err) {
+  //     console.error('Failed to fetch chart details:', err);
+  //     isChartLoading = false;
+  //     if (isNotFoundError(err)) {
+  //       showApiNotPresentMessage('chart');
+  //     } else {
+  //       if (chartContent) {
+  //         chartContent.innerHTML = `<div style="padding:20px;color:#c00">Failed to load chart details: ${err.message}</div>`;
+  //       }
+  //     }
+  //     // clear review status on error
+  //     const reviewStatusEl = document.getElementById('reviewStatusHeader');
+  //     if (reviewStatusEl) reviewStatusEl.textContent = '';
+  //   }
+  // }
+
   async function showChartDetails(memberIdArg, memberNameArg) {
     // Accept optional memberId/memberName arguments. If not provided, fall back to the
     // cached `currentMemberId`/`currentMemberName` (set by tryAutoLoad) and lastly try to
@@ -2105,7 +2228,7 @@
       chartApiData = apiData; // Cache the full API response
       // The service worker returns a wrapper { status, message, data }
       const payload = apiData && apiData.data ? apiData.data : apiData;
-      const apiConditions = payload && payload.medical_conditions ? payload.medical_conditions : [];
+      const apiConditions = payload && payload.mcond ? payload.mcond : [];
 
 
       const mapped = mapApiMedicalConditions(apiConditions);
@@ -2114,18 +2237,18 @@
       // Replace medicalConditionsData contents with mapped results
       medicalConditionsData.length = 0;
       Array.prototype.push.apply(medicalConditionsData, mapped);
-      isChartLoading = false;
+  isChartLoading = false;
       // Update patient name and chart count if member info available
       const patientEl = document.getElementById('patientNameDisplay');
-      if (payload && payload.member) {
-        const name = `${payload.member.fname || ''} ${payload.member.lname || ''}`.trim();
+      if (payload && payload.mem) {
+        const name = `${payload.mem.fn || ''} ${payload.mem.ln || ''}`.trim();
         if (name && patientEl) patientEl.textContent = name;
       } else if (memberName && patientEl) {
         patientEl.textContent = memberName;
       }
-      // Extract DOS (date of service) from payload.appointment.DOS and format for subtitle
+  // Extract DOS (date of service) from payload.appointment.DOS and format for subtitle
       try {
-        const dosIso = payload && payload.appointment && (payload.appointment.DOS || payload.appointment.dos);
+        const dosIso = payload && payload.appt && (payload.appt.dos);
         if (dosIso) {
           const formatted = new Date(dosIso).toLocaleDateString();
           currentDos = formatted;
@@ -2143,42 +2266,42 @@
       } catch (e) {
         console.warn('Failed to parse DOS from chart payload', e);
       }
-      // Update review status header based on API response status
-      const reviewStatusEl = document.getElementById('reviewStatusHeader');
-      if (reviewStatusEl && apiData) {
-        const status = apiData.status;
-        const analystData = payload && payload.analyst;
-
-        let statusText = '';
-        let statusColor = '#666';
-
-        if (status === 7) {
-          statusText = 'Under Analyst Review';
-          statusColor = '#ff8c00'; // orangish color
-        } else if (status === 12) {
-          if (analystData && analystData.Fname && analystData.Lname) {
-            statusText = `Reviewed by ${analystData.Fname} ${analystData.Lname}`;
-          } else {
-            statusText = 'Reviewed by Analyst';
-          }
-          statusColor = '#007bff'; // blue color
-        } else if (status === 13) {
-          if (analystData && analystData.Fname && analystData.Lname) {
-            statusText = `Reviewed by ${analystData.Fname} ${analystData.Lname}`;
-          } else {
-            statusText = 'Reviewed by Analyst';
-          }
-          statusColor = '#28a745'; // green color
-        }
-
-        reviewStatusEl.textContent = statusText;
-        reviewStatusEl.style.color = statusColor;
+  // Update review status header based on API response status
+  const reviewStatusEl = document.getElementById('reviewStatusHeader');
+  if (reviewStatusEl && apiData) {
+    const status = apiData.status;
+    const analystData = payload && payload.anst;
+    
+    let statusText = '';
+    let statusColor = '#666';
+    
+    if (status === 7) {
+      statusText = 'Under Analyst Review';
+      statusColor = '#ff8c00'; // orangish color
+    } else if (status === 11) {
+      if (analystData && analystData.fn && analystData.ln) {
+        statusText = `Reviewed by ${analystData.fn} ${analystData.ln}`;
+      } else {
+        statusText = 'Reviewed by Analyst';
       }
+      statusColor = '#007bff'; // blue color
+    } else if (status === 15) {
+      if (analystData && analystData.fn && analystData.ln) {
+        statusText = `Reviewed by ${analystData.fn} ${analystData.ln}`;
+      } else {
+        statusText = 'Reviewed by Analyst';
+      }
+      statusColor = '#28a745'; // green color
+    }
+    
+    reviewStatusEl.textContent = statusText;
+    reviewStatusEl.style.color = statusColor;
+  }
 
-      // Refresh UI and update the bracketed count
-      updateChartContent();
-      const countEl = document.getElementById('chartCount');
-      if (countEl) countEl.textContent = `[ ${medicalConditionsData.length} ]`;
+  // Refresh UI and update the bracketed count
+  updateChartContent();
+  const countEl = document.getElementById('chartCount');
+  if (countEl) countEl.textContent = `[ ${medicalConditionsData.length} ]`;
     } catch (err) {
       console.error('Failed to fetch chart details:', err);
       isChartLoading = false;
@@ -2193,8 +2316,9 @@
       const reviewStatusEl = document.getElementById('reviewStatusHeader');
       if (reviewStatusEl) reviewStatusEl.textContent = '';
     }
-  }
+    }
 
+  
   function closePanel() {
     const div = document.getElementById(FLOATING_DIV_ID);
     const backdrop = document.getElementById('backdrop');
@@ -2614,21 +2738,16 @@
         </div>
       </div>
     `;
-
-    console.log('🔍 Setting chartContent.innerHTML, tableHtml length:', tableHtml.length);
     chartContent.innerHTML = tableHtml;
-    console.log('🔍 chartContent.innerHTML set successfully');
 
     // Force DOM reflow to ensure rendering
     const height = chartContent.offsetHeight;
-    console.log('🔍 Forced DOM reflow completed, height:', height);
 
     // Debug: Check if expanded rows are actually in the DOM and visible
     const expandedRows = chartContent.querySelectorAll('.audit-expanded-row');
-    console.log('🔍 Expanded rows in DOM:', expandedRows.length);
     expandedRows.forEach((row, index) => {
       const computedStyle = window.getComputedStyle(row);
-      console.log(`🔍 Expanded row ${index} - display: ${computedStyle.display}, visibility: ${computedStyle.visibility}, height: ${computedStyle.height}`);
+      
     });
 
     // Debug: Check if expanded content is in the HTML
@@ -2991,7 +3110,7 @@
         const apiData = chartResponse.value;
         chartApiData = apiData; // Cache the full API response
         const payload = apiData && apiData.data ? apiData.data : apiData;
-        const apiConditions = payload && payload.medical_conditions ? payload.medical_conditions : [];
+        const apiConditions = payload && payload.mcond ? payload.mcond : [];
         const mapped = mapApiMedicalConditions(apiConditions);
 
         // Replace medicalConditionsData contents with mapped results
@@ -3000,8 +3119,8 @@
 
         // Update patient name in UI and cache
         const patientEl = document.getElementById('patientNameDisplay');
-        if (payload && payload.member) {
-          const name = `${payload.member.fname || ''} ${payload.member.lname || ''}`.trim();
+        if (payload && payload.mem) {
+          const name = `${payload.mem.fn || ''} ${payload.mem.ln || ''}`.trim();
           if (name) {
             currentMemberName = name;
             if (patientEl) patientEl.textContent = name;
@@ -3010,7 +3129,7 @@
 
         // Extract DOS from payload and update UI
         try {
-          const dosIso = payload && payload.appointment && (payload.appointment.DOS || payload.appointment.dos);
+          const dosIso = payload && payload.appt && ( payload.appt.dos);
           if (dosIso) {
             const dosDate = new Date(dosIso);
             currentDos = dosDate.toLocaleDateString();
@@ -3024,17 +3143,17 @@
 
         // Update review status header based on API response status
         const reviewStatusEl = document.getElementById('reviewStatusHeader');
-        console.log('🔍 Debug review status:', {
-          reviewStatusEl: !!reviewStatusEl,
-          apiData: !!apiData,
-          status: apiData?.status,
-          analystData: payload?.analyst,
-          fullApiData: apiData
-        });
+        // console.log('🔍 Debug review status:', {
+        //   reviewStatusEl: !!reviewStatusEl,
+        //   apiData: !!apiData,
+        //   status: apiData?.status,
+        //   analystData: payload?.analyst,
+        //   fullApiData: apiData
+        // });
 
         if (reviewStatusEl && apiData) {
           const status = apiData.status;
-          const analystData = payload && payload.analyst;
+          const analystData = payload && payload.anst;
 
           let statusText = '';
           let statusColor = '#666';
@@ -3043,15 +3162,15 @@
             statusText = 'Under Analyst Review';
             statusColor = '#ff8c00'; // orangish color
           } else if (status === 12) {
-            if (analystData && analystData.Fname && analystData.Lname) {
-              statusText = `Reviewed by ${analystData.Fname} ${analystData.Lname}`;
+            if (analystData && analystData.fn && analystData.ln) {
+              statusText = `Reviewed by ${analystData.fn} ${analystData.ln}`;
             } else {
               statusText = 'Reviewed by Analyst';
             }
             statusColor = '#007bff'; // blue color
           } else if (status === 13) {
-            if (analystData && analystData.Fname && analystData.Lname) {
-              statusText = `Reviewed by ${analystData.Fname} ${analystData.Lname}`;
+            if (analystData && analystData.fn && analystData.ln) {
+              statusText = `Reviewed by ${analystData.fn} ${analystData.ln}`;
             } else {
               statusText = 'Reviewed by Analyst';
             }
@@ -3082,8 +3201,8 @@
         const apiData = auditResponse.value;
 
         // Extract member name from audit response (override if available)
-        if (apiData && apiData.member_name) {
-          currentMemberName = apiData.member_name;
+        if (apiData && apiData.mn) {
+          currentMemberName = apiData.mn;
           console.log('📝 Updated member name from audit API:', currentMemberName);
         }
 
@@ -3100,8 +3219,8 @@
 
         // Normalize payload shapes: apiData may be nested in audit_data.data
         let auditArray = [];
-        if (apiData && apiData.audit_data && Array.isArray(apiData.audit_data.data)) {
-          auditArray = apiData.audit_data.data;
+        if (apiData && apiData.audit_summary_data && Array.isArray(apiData.audit_summary_data.data)) {
+          auditArray = apiData.audit_summary_data.data;
         } else if (Array.isArray(apiData)) {
           auditArray = apiData;
         }
