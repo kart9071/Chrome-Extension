@@ -48,7 +48,7 @@
     suggestionPart = (suggestionPart || '').replace(/^\s*suggestion:\s*/i, '').trim();
 
     // SVG icon used in the template
-    const svgIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-shield-question w-4 h-4 text-amber-600"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"></path><path d="M9.1 9a3 3 0 0 1 5.82 1c0 2-3 3-3 3"></path><path d="M12 17h.01"></path></svg>`;
+    const svgIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 text-amber-600 lucide lucide-shield-question"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"></path><path d="M9.1 9a3 3 0 0 1 5.82 1c0 2-3 3-3 3"></path><path d="M12 17h.01"></path></svg>`;
 
     let html = `
     <div class="card-info-row code-explanation-row">
@@ -1572,21 +1572,21 @@
     }
   }
 
-  
+
 
   function mapApiMedicalConditions(apiConditions) {
     if (!Array.isArray(apiConditions)) return [];
     return apiConditions.map((c, idx) => {
       return {
         id: c.id || '',
-        title: c.cn  || c.dx || 'Unknown condition',
-        icon:'🩺',
+        title: c.cn || c.dx || 'Unknown condition',
+        icon: '🩺',
         // icon: c.isChronic ? '🩺' : '📌',
         details: {
           icd10: (c.icd || '').toString(),
           // hcc24: c.hcc_v24 || c.hcc24 || null,
           hcc24: 'hcc' || null,
-          hcc28: c.v28 ||  null,
+          hcc28: c.v28 || null,
           rxHcc: c.rx || null,
           source: c.di || '',
           note: !!(c.a_nt || c.qr),
@@ -1594,13 +1594,13 @@
           active: true,
           code_type: c.cs || '',
           // RADV_score: c.RADV_score || c.radv_score || 0,
-          RADV_score : 1 || 0,
+          RADV_score: 1 || 0,
           code_status: c.cs || '',
           date: c.ldd || null
         },
         description: c.ce || '',
         clinicalIndicators: c.ci || '',
-        codeExplanation: c.qr  || '',
+        codeExplanation: c.qr || '',
         noteText: c.a_nt || null
       };
     });
@@ -1992,7 +1992,7 @@
         <button class="close-btn" id="closeChartDiv">✕</button>
       </div>
       <!-- removed duplicate absolute-positioned logo to avoid duplication -->
-      <div id="chartContent"></div>
+      <div id="chartContent" style="flex: 1; overflow-y: auto; height: calc(100vh - 85px);"></div>
     `;
     // append and wire close button
     document.body.appendChild(div);
@@ -2237,7 +2237,7 @@
       // Replace medicalConditionsData contents with mapped results
       medicalConditionsData.length = 0;
       Array.prototype.push.apply(medicalConditionsData, mapped);
-  isChartLoading = false;
+      isChartLoading = false;
       // Update patient name and chart count if member info available
       const patientEl = document.getElementById('patientNameDisplay');
       if (payload && payload.mem) {
@@ -2246,7 +2246,7 @@
       } else if (memberName && patientEl) {
         patientEl.textContent = memberName;
       }
-  // Extract DOS (date of service) from payload.appointment.DOS and format for subtitle
+      // Extract DOS (date of service) from payload.appointment.DOS and format for subtitle
       try {
         const dosIso = payload && payload.appt && (payload.appt.dos);
         if (dosIso) {
@@ -2266,42 +2266,42 @@
       } catch (e) {
         console.warn('Failed to parse DOS from chart payload', e);
       }
-  // Update review status header based on API response status
-  const reviewStatusEl = document.getElementById('reviewStatusHeader');
-  if (reviewStatusEl && apiData) {
-    const status = apiData.status;
-    const analystData = payload && payload.anst;
-    
-    let statusText = '';
-    let statusColor = '#666';
-    
-    if (status === 7) {
-      statusText = 'Under Analyst Review';
-      statusColor = '#ff8c00'; // orangish color
-    } else if (status === 11) {
-      if (analystData && analystData.fn && analystData.ln) {
-        statusText = `Reviewed by ${analystData.fn} ${analystData.ln}`;
-      } else {
-        statusText = 'Reviewed by Analyst';
-      }
-      statusColor = '#007bff'; // blue color
-    } else if (status === 15) {
-      if (analystData && analystData.fn && analystData.ln) {
-        statusText = `Reviewed by ${analystData.fn} ${analystData.ln}`;
-      } else {
-        statusText = 'Reviewed by Analyst';
-      }
-      statusColor = '#28a745'; // green color
-    }
-    
-    reviewStatusEl.textContent = statusText;
-    reviewStatusEl.style.color = statusColor;
-  }
+      // Update review status header based on API response status
+      const reviewStatusEl = document.getElementById('reviewStatusHeader');
+      if (reviewStatusEl && apiData) {
+        const status = apiData.status;
+        const analystData = payload && payload.anst;
 
-  // Refresh UI and update the bracketed count
-  updateChartContent();
-  const countEl = document.getElementById('chartCount');
-  if (countEl) countEl.textContent = `[ ${medicalConditionsData.length} ]`;
+        let statusText = '';
+        let statusColor = '#666';
+
+        if (status === 7) {
+          statusText = 'Under Analyst Review';
+          statusColor = '#ff8c00'; // orangish color
+        } else if (status === 11) {
+          if (analystData && analystData.fn && analystData.ln) {
+            statusText = `Reviewed by ${analystData.fn} ${analystData.ln}`;
+          } else {
+            statusText = 'Reviewed by Analyst';
+          }
+          statusColor = '#007bff'; // blue color
+        } else if (status === 15) {
+          if (analystData && analystData.fn && analystData.ln) {
+            statusText = `Reviewed by ${analystData.fn} ${analystData.ln}`;
+          } else {
+            statusText = 'Reviewed by Analyst';
+          }
+          statusColor = '#28a745'; // green color
+        }
+
+        reviewStatusEl.textContent = statusText;
+        reviewStatusEl.style.color = statusColor;
+      }
+
+      // Refresh UI and update the bracketed count
+      updateChartContent();
+      const countEl = document.getElementById('chartCount');
+      if (countEl) countEl.textContent = `[ ${medicalConditionsData.length} ]`;
     } catch (err) {
       console.error('Failed to fetch chart details:', err);
       isChartLoading = false;
@@ -2316,9 +2316,9 @@
       const reviewStatusEl = document.getElementById('reviewStatusHeader');
       if (reviewStatusEl) reviewStatusEl.textContent = '';
     }
-    }
+  }
 
-  
+
   function closePanel() {
     const div = document.getElementById(FLOATING_DIV_ID);
     const backdrop = document.getElementById('backdrop');
@@ -2472,7 +2472,7 @@
            <!-- Clinical Indicators (icon label) -->
            <div class="card-info-row indicators-row">
              <span class="label">
-               <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-flask-conical w-4 h-4 text-blue-600"><path d="M14 2v6a2 2 0 0 0 .245.96l5.51 10.08A2 2 0 0 1 18 22H6a2 2 0 0 1-1.755-2.96l5.51-10.08A2 2 0 0 0 10 8V2"></path><path d="M6.453 15h11.094"></path><path d="M8.5 2h7"></path></svg>
+               <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 text-blue-600 lucide lucide-flask-conical"><path d="M14 2v6a2 2 0 0 0 .245.96l5.51 10.08A2 2 0 0 1 18 22H6a2 2 0 0 1-1.755-2.96l5.51-10.08A2 2 0 0 0 10 8V2"></path><path d="M6.453 15h11.094"></path><path d="M8.5 2h7"></path></svg>
              </span>
              <span class="value">${condition.clinicalIndicators}</span>
            </div>
@@ -2569,55 +2569,93 @@
   function renderExpandedAuditDetails(row) {
     const raw = row.raw || {};
     const { all_encounter_dates, exclusion_violation = "", marked_as = null, updated_status = null, overall_recommendation = "", coding_issues = "", terminology_variation = "", user_last_updated = "", consistency_explanation = "", } = raw
+
+
+
     const encounterDates = all_encounter_dates.join(", ") || "";
     const updatedDate = user_last_updated?.length > 0 ? formatToMMDDYYYY(user_last_updated) : ""
     const markedStatus = getStatusLabel(marked_as);
     const updatedStatus = getStatusLabel(updated_status)
 
-    const details = [
-      ...(encounterDates?.length > 0
-        ? [{ label: 'Encounter Dates', value: encounterDates }]
-        : []),
-      ...(consistency_explanation?.length > 0
-        ? [{ label: 'Consistency Explanation', value: consistency_explanation }]
-        : []),
-      ...(exclusion_violation?.length > 0
-        ? [{ label: 'Exclusion Violation', value: exclusion_violation }]
-        : []),
+    // Map updated_status to color class
+    const statusClasses = {
+      'ACCEPTABLE': 'status-acceptable',
+      'DELETE': 'status-delete',
+      'QUERY REQUIRED': 'status-query-required',
+      'NOT APPLICABLE': 'status-not-applicable'
+    };
+    const updateStatusClass = statusClasses[(updated_status || '').toUpperCase()] || 'status-query-required';
 
-      ...(terminology_variation?.length > 0
-        ? [{ label: 'Terminology Variation', value: terminology_variation }]
-        : []),
-      ...(coding_issues?.length > 0
-        ? [{ label: 'Coding Issues', value: coding_issues }]
-        : []),
-
-      ...(overall_recommendation?.length > 0
-        ? [{ label: 'Overall Recommendation', value: overall_recommendation }]
-        : []),
-      ...(updatedDate?.length > 0
-        ? [{
-          label: 'Status Update', value: `Marked as ${markedStatus} \n Updated on ${updatedDate} as ${updatedStatus} During manual review`
-        }]
-        : []),
-    ];
-
-    const validDetails = details.filter(item =>
-      item.value !== undefined && item.value !== null && String(item.value).trim() !== '' && String(item.value).trim() !== '-'
-    );
-
-    if (validDetails.length === 0) {
-      return '<div class="audit-expanded-empty">No additional audit details available.</div>';
-    }
 
     return `
-      <div class="audit-expanded-grid">
-        ${validDetails.map(item => `
-          <div class="audit-detail-row">
-            <div class="audit-detail-label">${item.label}</div>
-            <div class="audit-detail-value">${escapeHtml(String(item.value))}</div>
+      <div class="audit-card-body">
+      <div class="audit-dates-list">
+        <span style="font-size: 12px;">📅</span>
+            <div class="audit-date-item">
+                <span>${encounterDates}</span>
+              </div>
+      </div>     
+        ${consistency_explanation?.length > 0 ? `
+          <div class="audit-box">
+            <div class="audit-label">
+              <div>Consistency Explanation </div>
+              <div>:</div>
+            </div>
+            <div class="audit-text">${escapeHtml(consistency_explanation)}</div>
           </div>
-        `).join('')}
+        ` : ""}
+          ${exclusion_violation?.length > 0 ? `
+          <div class="audit-box">
+            <div class="audit-label">
+              <div>Exclusion Violation </div>
+              <div>:</div>
+            </div>
+            <div class="audit-text">${escapeHtml(exclusion_violation)}</div>
+          </div>
+        ` : ""}
+         ${terminology_variation?.length > 0 ? `
+          <div class="audit-box">
+            <div class="audit-label">
+              <div>Terminology Variation</div>
+              <div>:</div>
+            </div>
+            <div class="audit-text">${escapeHtml(terminology_variation)}</div>
+          </div>
+        ` : ""}
+        ${coding_issues?.length > 0 ? `
+          <div class="audit-box">
+            <div class="audit-label">
+              <div>Coding Issues </div>
+              <div>:</div>
+            </div>
+            <div class="audit-text">${escapeHtml(coding_issues)}</div>
+          </div>
+        ` : ""}
+        ${overall_recommendation?.length > 0 ? `
+          <div class="audit-recommendation-box">
+            <div class="audit-recommendation-label">Overall Recommendation</div>
+            <div class="audit-recommendation-text">${escapeHtml(overall_recommendation)}</div>
+          </div>
+        ` : ''}
+         ${updatedDate?.length > 0 ? `
+          <div class="audit-update-box ${updateStatusClass}">
+            <div class="audit-update-text">
+              <span class="font-bold">${markedStatus}</span>
+              by System
+        
+              <svg 
+                xmlns="http://www.w3.org/2000/svg" 
+                viewBox="0 0 640 640"
+                class="audit-arrow"
+              >
+                <path d="M566.6 342.6C579.1 330.1 579.1 309.8 566.6 297.3L406.6 137.3C394.1 124.8 373.8 124.8 361.3 137.3C348.8 149.8 348.8 170.1 361.3 182.6L466.7 288L96 288C78.3 288 64 302.3 64 320C64 337.7 78.3 352 96 352L466.7 352L361.3 457.4C348.8 469.9 348.8 490.2 361.3 502.7C373.8 515.2 394.1 515.2 406.6 502.7L566.6 342.7z"/>
+              </svg>
+        
+              <span class="font-bold">${updatedStatus}</span>
+              on <span class="font-bold">${updatedDate}</span>
+            </div>
+          </div>
+        ` : ''}
       </div>
     `;
   }
@@ -2656,6 +2694,238 @@
     const chartContent = document.getElementById('chartContent');
     console.log('🔍 chartContent element found:', !!chartContent);
 
+    // Add custom styles for the accordion design
+    if (!document.getElementById('audit-accordion-styles')) {
+      const style = document.createElement('style');
+      style.id = 'audit-accordion-styles';
+      style.textContent = `
+        .audit-accordion-container {
+          display: flex !important;
+          flex-direction: column !important;
+          gap: 3px !important;
+          padding: 6px !important;
+          background: #f8f9fa !important;
+          min-height: 100% !important;
+        }
+        .audit-card {
+          background: #ffffff !important;
+          border: 1px solid #e5e7eb !important;
+          border-radius: 6px !important;
+          overflow: hidden !important;
+          transition: all 0.3s ease !important;
+          box-shadow: 0 1px 3px rgba(0,0,0,0.05) !important;
+          margin-bottom: 8px !important;
+          width: 100% !important;
+          box-sizing: border-box !important;
+        }
+        .audit-card.expanded {
+          box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06) !important;
+          border-color: #d1d5db !important;
+        }
+        .audit-card-header {
+          padding: 8px !important;
+          cursor: pointer !important;
+          display: flex !important;
+          justify-content: space-between !important;
+          align-items: flex-start !important;
+          gap: 16px !important;
+          transition: background-color 0.2s !important;
+          text-align: left !important;
+        }
+        .audit-card-header:hover {
+          background-color: #f9fafb !important;
+        }
+        .audit-card-info {
+          flex: 1 !important;
+        }
+        .audit-condition-name {
+          font-size: 12px !important;
+          font-weight: 700 !important;
+          color: #111827 !important;
+          margin-bottom: 4px !important;
+          line-height: 1.2 !important;
+        }
+        .audit-codes-row {
+          display: flex !important;
+          gap: 12px !important;
+          font-size: 13px !important;
+          color: #6b7280 !important;
+        }
+        .audit-status-badge {
+          padding: 6px 12px !important;
+          border-radius: 9999px !important;
+          font-size: 11px !important;
+          font-weight: 700 !important;
+          text-transform: uppercase !important;
+          letter-spacing: 0.025em !important;
+          white-space: nowrap !important;
+        }
+        /* More robust status colors */
+        .audit-status-badge.status-acceptable {
+          background-color: #ecfdf5 !important;
+          color: #065f46 !important;
+          border: 1px solid #d1fae5 !important;
+        }
+        .audit-status-badge.status-query-required {
+          background-color: #fffbeb !important;
+          color: #92400e !important;
+          border: 1px solid #fef3c7 !important;
+        }
+        .audit-status-badge.status-delete {
+          background-color: #fef2f2 !important;
+          color: #991b1b !important;
+          border: 1px solid #fee2e2 !important;
+        }
+        .audit-status-badge.status-not-applicable {
+          background-color: #f0f9ff !important;
+          color: #075985 !important;
+          border: 1px solid #e0f2fe !important;
+        }
+        .audit-card-body {
+          padding: 0 10px 10px 10px !important;
+          border-top: 1px solid #f3f4f6 !important;
+        }
+        .audit-section-title {
+          font-size: 14px !important;
+          font-weight: 700 !important;
+          color: #374151 !important;
+          margin: 16px 0 12px 0 !important;
+        }
+        .audit-stats-grid {
+          display: grid !important;
+          grid-template-columns: 1fr 1fr !important;
+          gap: 12px !important;
+          margin-bottom: 16px !important;
+        }
+        .audit-stat-card {
+          background: #f9fafb !important;
+          padding: 12px !important;
+          border-radius: 8px !important;
+        }
+        .audit-stat-label {
+          font-size: 12px !important;
+          color: #6b7280 !important;
+          margin-bottom: 4px !important;
+        }
+        .audit-stat-value {
+          font-size: 18px !important;
+          font-weight: 700 !important;
+          color: #111827 !important;
+        }
+        .audit-dates-list {
+          margin-top: 8px !important;
+          display: flex !important;
+          gap: 8px !important;
+          margin-bottom: 8px !important;
+        }
+        .audit-date-item {
+          display: flex !important;
+          align-items: center !important;
+          gap: 8px !important;
+          font-size: 11px !important;
+          color: #374151 !important;
+        }
+        .audit-trend-banner {
+          background-color: #eff6ff !important;
+          color: #1e40af !important;
+          padding: 10px 16px !important;
+          border-radius: 6px !important;
+          font-weight: 600 !important;
+          font-size: 14px !important;
+          margin-bottom: 16px !important;
+        }
+        .audit-recommendation-box {
+          background-color: #fffbeb !important;
+          border-left: 4px solid #f59e0b !important;
+          padding: 6px 8px !important;
+          border-radius: 4px !important;
+        }
+        .audit-update-text {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          white-space: nowrap;
+          font-size: 14px;
+        }
+        .audit-arrow {
+          width: 14px;
+          height: 14px;
+          fill: currentColor;
+          flex-shrink: 0;
+        }
+        .audit-update-box {
+            margin-top: 10px !important;
+            padding: 2px 6px !important;
+        }
+        .audit-update-box.status-acceptable {
+          background-color: #ecfdf5 !important;
+          border-left-color: #10b981 !important;
+        }
+        .audit-update-box.status-acceptable .audit-update-text {
+          color: #065f46 !important;
+        }
+        .audit-update-box.status-query-required {
+          background-color: #fffbeb !important;
+          border-left-color: #f59e0b !important;
+        }
+        .audit-update-box.status-query-required .audit-update-text {
+          color: #92400e !important;
+        }
+        .audit-update-box.status-delete {
+          background-color: #fef2f2 !important;
+          border-left-color: #ef4444 !important;
+        }
+        .audit-update-box.status-delete .audit-update-text {
+          color: #991b1b !important;
+        }
+        .audit-update-box.status-not-applicable {
+          background-color: #f0f9ff !important;
+          border-left-color: #0ea5e9 !important;
+        }
+        .audit-update-box.status-not-applicable .audit-update-text {
+          color: #075985 !important;
+        }
+        .font-bold{
+          font-weight: 700 !important;
+        }
+        .audit-update-text {
+          font-size: 11px !important;
+          color: #cc5500 !important;
+          line-height: 1.5 !important;
+        }
+         .audit-box {
+           margin-bottom: 10px !important;
+           display: flex;
+           gap:10px
+        }
+        .audit-label{
+          font-weight: 700 !important;
+          min-width: 140px;
+          font-size: 11px !important;
+          margin-bottom: 4px !important;
+          white-space: nowrap !important;
+          display: flex; 
+          justify-content: space-between;
+        }
+        .audit-text {
+          font-size: 11px !important;
+          line-height: 1.5 !important;
+        }
+        .audit-recommendation-label {
+          font-weight: 700 !important;
+          color: #92400e !important;
+          font-size: 11px !important;
+          margin-bottom: 4px !important;
+        }
+        .audit-recommendation-text {
+          font-size: 11px !important;
+          color: #b45309 !important;
+          line-height: 1.5 !important;
+        }
+      `;
+      document.head.appendChild(style);
+    }
+
     // Filter data first
     let filteredData = filterConditionAuditData();
     // Sort data if needed
@@ -2671,139 +2941,108 @@
       });
     }
 
-    const tableRows = sortedData.map((row, i) => {
+    const cardsHtml = sortedData.map((row, i) => {
       const rowId = String(row.id || i);
       const isExpanded = window.expandedAuditRows && window.expandedAuditRows.has(rowId);
-      console.log(`🔍 Row ${rowId}: isExpanded=${isExpanded}, expandedRows=${Array.from(window.expandedAuditRows || [])}`);
-      const raw = row.raw || {};
       const icdCode = row["ICD-10"] || '';
       const hccCode = row["HCC"] || '';
       const rxHccCode = row["RxHCC"] || '';
-      const Status = row["Status"] || '';
-      const pnDates = row.pn_dates || raw.pn_dates || '';
-      // PN DOS moved to main table, Suggested Code moved to expanded details
+      const statusValue = (row["Status"] || '').trim();
+
+      const STATUS_OPTIONS = [
+        { label: "Compliant", value: "ACCEPTABLE", class: "status-acceptable" },
+        { label: "Non Compliant", value: "DELETE", class: "status-delete" },
+        { label: "Partially Compliant", value: "QUERY REQUIRED", class: "status-query-required" },
+        { label: "Not Applicable", value: "NOT APPLICABLE", class: "status-not-applicable" },
+      ];
+
+      // Debug mapping
+      const normalizedStatus = statusValue.toUpperCase();
+      let statusInfo = STATUS_OPTIONS.find(opt => opt.value === normalizedStatus);
+
+      if (!statusInfo) {
+        // Fallback or specific mappings
+        if (normalizedStatus === 'COMPLIANT') statusInfo = STATUS_OPTIONS[0];
+        else if (normalizedStatus === 'NON COMPLIANT') statusInfo = STATUS_OPTIONS[1];
+        else if (normalizedStatus === 'PARTIALLY COMPLIANT') statusInfo = STATUS_OPTIONS[2];
+        else {
+          statusInfo = {
+            label: statusValue || 'Unknown',
+            class: "status-query-required"
+          };
+        }
+      }
 
       return `
-        <tr class="${isExpanded ? 'expanded' : ''}">
-          <td class="expand-col">
-            <button class="expand-btn ${isExpanded ? 'expanded' : ''}" data-row-id="${rowId}" aria-label="${isExpanded ? 'Collapse' : 'Expand'} row">
-              <span class="expand-chevron" style="display:inline-block;transition:transform 0.2s;transform:${isExpanded ? 'rotate(180deg)' : 'rotate(0deg)'}">▼</span>
-            </button>
-          </td>
-          <td class="condition-name-col">${escapeHtml(row.Condition || '')}</td>
-          <td>${escapeHtml(icdCode)}</td>
-          <td>${escapeHtml(hccCode)}</td>
-          <td>${escapeHtml(rxHccCode)}</td>
-          <td>${escapeHtml(Status)}</td>
-        </tr>
-        ${isExpanded ? `
-        <tr class="audit-expanded-row">
-          <td colspan="7">
-            <div class="audit-expanded-container">
-              ${renderExpandedAuditDetails(row)}
+        <div class="audit-card ${isExpanded ? 'expanded' : ''}" data-row-id="${rowId}">
+          <div class="audit-card-header">
+            <div class="audit-card-info">
+              <div class="audit-condition-name">${escapeHtml(row.Condition || '')}</div>
+              <div class="audit-codes-row">
+                <span>ICD: ${escapeHtml(icdCode)}</span>
+                ${hccCode ? `<span>• HCC: ${escapeHtml(hccCode)}</span>` : ''}
+                ${rxHccCode ? `<span>• RxHCC: ${escapeHtml(rxHccCode)}</span>` : ''}
+              </div>
             </div>
-          </td>
-        </tr>
-        ` : ''}
+            <div class="audit-status-badge ${statusInfo.class}">
+              ${escapeHtml(statusInfo.label)}
+            </div>
+          </div>
+          ${isExpanded ? renderExpandedAuditDetails(row) : ''}
+        </div>
       `;
     }).join('');
 
-    // Render audit table
-    const tableHtml = `
-      <div class="audit-table-section">
-        <div class="audit-table-container">
-          <div class="audit-table-wrapper">
-            ${sortedData.length === 0 ?
-        `<div style="text-align: center; padding: 40px 20px; height: 60px; font-size: 14px; color: #6c757d; font-style: italic; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;">
-                  <div style="font-size: 24px;">🔍</div>
-                  <div>No audit records found</div>
-               </div>` :
-        `<table class="audit-table">
-                <thead>
-                  <tr>
-                    <th></th>
-                    <th>Condition</th>
-                    <th>ICD-10</th>
-                    <th>HCC</th>
-                    <th>RxHCC</th>
-                    <th>Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  ${tableRows}
-                </tbody>
-              </table>`
+    const containerHtml = `
+      <div class="audit-accordion-container">
+        ${sortedData.length === 0 ?
+        `<div style="text-align: center; padding: 40px 20px; font-size: 14px; color: #6c757d; font-style: italic; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;">
+            <div style="font-size: 24px;">🔍</div>
+            <div>No audit records found</div>
+          </div>` :
+        cardsHtml
       }
-          </div>
-        </div>
       </div>
     `;
-    chartContent.innerHTML = tableHtml;
 
-    // Force DOM reflow to ensure rendering
-    const height = chartContent.offsetHeight;
+    chartContent.innerHTML = containerHtml;
 
-    // Debug: Check if expanded rows are actually in the DOM and visible
-    const expandedRows = chartContent.querySelectorAll('.audit-expanded-row');
-    expandedRows.forEach((row, index) => {
-      const computedStyle = window.getComputedStyle(row);
-      
+    // Add event listeners for accordion headers
+    const headers = chartContent.querySelectorAll('.audit-card-header');
+    headers.forEach(header => {
+      header.addEventListener('click', (e) => {
+        const card = header.closest('.audit-card');
+        const rowId = card.getAttribute('data-row-id');
+        const wasExpanded = window.expandedAuditRows && window.expandedAuditRows.has(rowId);
+
+        window.toggleAuditRowExpand(rowId);
+
+        // After expansion, scroll to make the expanded content visible
+        if (!wasExpanded) {
+          setTimeout(() => {
+            const expandedCard = chartContent.querySelector(`.audit-card[data-row-id="${rowId}"]`);
+            if (expandedCard) {
+              expandedCard.scrollIntoView({
+                behavior: 'smooth',
+                block: 'nearest'
+              });
+            }
+          }, 100);
+        }
+      });
     });
 
-    // Debug: Check if expanded content is in the HTML
-    if (window.expandedAuditRows && window.expandedAuditRows.size > 0) {
-      const expandedRowsInHtml = tableHtml.includes('audit-expanded-row');
-      console.log('🔍 Debug HTML - Expanded rows exist:', window.expandedAuditRows.size, 'HTML contains expanded rows:', expandedRowsInHtml);
-      if (expandedRowsInHtml) {
-        console.log('🔍 Expanded content found in HTML:', tableHtml.match(/audit-expanded-row[\s\S]*?<\/tr>/g));
-      }
-    }
-
-    // Update header results count for audit view
+    // Update results count
     try {
       const resultsEl = document.getElementById('chartResultsCount');
       if (resultsEl) {
-        // For audit view, keep the DOS that was set from audit API response
-        // Don't override it if it's already set from fetchAuditDetails
         if (!resultsEl.textContent || resultsEl.textContent === 'Loading...') {
           resultsEl.textContent = `${sortedData.length} records`;
         }
       }
     } catch (e) {
-      console.warn('Failed to update chartResultsCount for audit view', e);
+      console.warn('Failed to update chartResultsCount', e);
     }
-
-    // Add event delegation for expand buttons after rendering
-    setTimeout(() => {
-      const expandButtons = chartContent.querySelectorAll('.expand-btn');
-      expandButtons.forEach((btn) => {
-        const rowId = btn.getAttribute('data-row-id');
-        if (rowId) {
-          btn.addEventListener('click', function (e) {
-            e.preventDefault();
-            e.stopPropagation();
-            console.log('🔽 Toggling audit row:', rowId);
-            const wasExpanded = window.expandedAuditRows && window.expandedAuditRows.has(rowId);
-            window.toggleAuditRowExpand(rowId);
-
-            // After expansion, scroll to make the expanded content visible
-            if (!wasExpanded) {
-              setTimeout(() => {
-                const expandedRow = chartContent.querySelector('.audit-expanded-row');
-                if (expandedRow) {
-                  expandedRow.scrollIntoView({
-                    behavior: 'smooth',
-                    block: 'nearest',
-                    inline: 'nearest'
-                  });
-                  console.log('🔽 Scrolled to expanded row');
-                }
-              }, 100);
-            }
-          });
-        }
-      });
-    }, 0);
   }
 
   // Show MR Analysis content
@@ -3129,7 +3368,7 @@
 
         // Extract DOS from payload and update UI
         try {
-          const dosIso = payload && payload.appt && ( payload.appt.dos);
+          const dosIso = payload && payload.appt && (payload.appt.dos);
           if (dosIso) {
             const dosDate = new Date(dosIso);
             currentDos = dosDate.toLocaleDateString();
