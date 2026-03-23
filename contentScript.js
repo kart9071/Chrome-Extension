@@ -80,6 +80,12 @@
   const medicalConditionsData = [];
   // Condition Audit Table Data (populated from API)
   let conditionAuditData = [];
+  // Cached audit review status (used when API returns before panel is created)
+  let currentAuditStatusText = '';
+  let currentAuditStatusColor = '';
+  // Cached chart review status (used when chart API returns during preload)
+  let currentChartStatusText = '';
+  let currentChartStatusColor = '';
 
   // Add CSS styles
   function addStyles() {
@@ -1548,6 +1554,43 @@
     const patientElImmediate = document.getElementById('patientNameDisplay');
     if (patientElImmediate) patientElImmediate.textContent = memberNameFromApi || 'N/A';
 
+    // Update audit-specific review status header from numeric `sts` (or string) if present
+    try {
+      const auditStatusEl = document.getElementById('auditReviewStatusHeader');
+      const stsVal = apiData && (typeof apiData.sts !== 'undefined' ? apiData.sts : (apiData.status || (apiData.audit_summary_data && apiData.audit_summary_data.status)));
+      let stsNum = null;
+      if (typeof stsVal === 'number') stsNum = stsVal;
+      else if (typeof stsVal === 'string' && !isNaN(Number(stsVal))) stsNum = Number(stsVal);
+
+      if (auditStatusEl) {
+        let statusText = '';
+        let statusColor = '#666';
+        if (stsNum === 1) {
+          statusText = 'Under Pending';
+          statusColor = '#ff8c00';
+        } else if (stsNum === 2 || stsNum === 3) {
+          statusText = 'Under Analyst Review';
+          statusColor = '#ff8c00';
+        } else if (stsNum === 4 || stsNum === 5) {
+          statusText = 'Under Auditor Review';
+          statusColor = '#007bff';
+        } else if (stsNum === 6 || stsNum === 7) {
+          statusText = 'Completed';
+          statusColor = '#28a745';
+        } else if (typeof stsVal === 'string' && stsVal.trim()) {
+          // fallback: use textual status if provided
+          statusText = String(stsVal);
+        }
+        // cache for later (panel may not exist during preload)
+        currentAuditStatusText = statusText;
+        currentAuditStatusColor = statusColor;
+        auditStatusEl.textContent = statusText;
+        auditStatusEl.style.color = statusColor;
+      }
+    } catch (e) {
+      console.warn('Failed to set audit review status header', e);
+    }
+
     if (mapped.length) {
       // replace conditionAuditData
       conditionAuditData = mapped;
@@ -1767,17 +1810,17 @@
           let statusText = '';
           let statusColor = '#666';
 
-          if (status === 7) {
+          if (status === 7 || status === 8 || status === 9 || status === 10) {
             statusText = 'Under Analyst Review';
             statusColor = '#ff8c00';
-          } else if (status === 12) {
+          } else if (status === 11 || status === 12 || status === 13 || status === 14) {
             if (analystData && analystData.Fname && analystData.Lname) {
               statusText = `Reviewed by ${analystData.Fname} ${analystData.Lname}`;
             } else {
               statusText = 'Reviewed by Analyst';
             }
             statusColor = '#007bff';
-          } else if (status === 13) {
+          } else if (status === 15) {
             if (analystData && analystData.Fname && analystData.Lname) {
               statusText = `Reviewed by ${analystData.Fname} ${analystData.Lname}`;
             } else {
@@ -1990,6 +2033,7 @@
             <div style="display:flex;flex-direction:column;gap:2px;">
               <div id="chartSubTitle" class="chart-subtitle"></div>
               <div id="reviewStatusHeader" style="font-size:12px;font-weight:600;color:#666;"></div>
+              <div id="auditReviewStatusHeader" style="font-size:12px;font-weight:600;color:#666;display:none;"></div>
             </div>
             <div id="chartResultsCount" class="chart-subtitle" style="text-align:right;"></div>
           </div>
@@ -2003,6 +2047,29 @@
     document.body.appendChild(div);
     const closeBtn = div.querySelector('#closeChartDiv');
     if (closeBtn) closeBtn.addEventListener('click', closePanel);
+    // Apply cached review statuses if API returned earlier (preload)
+    try {
+      const chartStatusEl = div.querySelector('#reviewStatusHeader');
+      const auditStatusEl = div.querySelector('#auditReviewStatusHeader');
+      if (chartStatusEl && currentChartStatusText) {
+        chartStatusEl.textContent = currentChartStatusText;
+        chartStatusEl.style.color = currentChartStatusColor || '#666';
+      }
+      if (auditStatusEl && currentAuditStatusText) {
+        auditStatusEl.textContent = currentAuditStatusText;
+        auditStatusEl.style.color = currentAuditStatusColor || '#666';
+      }
+      // Ensure visibility reflects current contentType
+      if (contentType === 'conditionAudit') {
+        if (chartStatusEl) chartStatusEl.style.display = 'none';
+        if (auditStatusEl) auditStatusEl.style.display = '';
+      } else {
+        if (chartStatusEl) chartStatusEl.style.display = '';
+        if (auditStatusEl) auditStatusEl.style.display = 'none';
+      }
+    } catch (e) {
+      console.warn('Failed to apply cached review status to panel', e);
+    }
     return div;
   }
 
@@ -2052,9 +2119,11 @@
       // Keep the left subtitle empty; show "Chart reviewed on {date}" on the right instead.
       const resultsEl = document.getElementById('chartResultsCount');
       if (resultsEl) resultsEl.innerHTML = currentDos ? `<strong>DOS:${currentDos}</strong>` : '';
-      // Clear review status when showing panel
+      // Show chart status header, hide audit header (don't clear status—showChartDetails handles that on fetch)
       const reviewStatusEl = document.getElementById('reviewStatusHeader');
-      if (reviewStatusEl) reviewStatusEl.textContent = '';
+      const auditStatusEl = document.getElementById('auditReviewStatusHeader');
+      if (reviewStatusEl) reviewStatusEl.style.display = '';
+      if (auditStatusEl) auditStatusEl.style.display = 'none';
       // patient name display updated when data loads
       showChartContent();
     } else if (type === 'conditionAudit') {
@@ -2067,6 +2136,15 @@
       document.getElementById('chartTitle').textContent = 'Audit Details';
       const subEl = document.getElementById('chartSubTitle');
       if (subEl) subEl.textContent = '';
+      // show audit-specific status and hide chart status
+      try {
+        const reviewStatusElLocal = document.getElementById('reviewStatusHeader');
+        const auditStatusElLocal = document.getElementById('auditReviewStatusHeader');
+        if (reviewStatusElLocal) reviewStatusElLocal.style.display = 'none';
+        if (auditStatusElLocal) auditStatusElLocal.style.display = '';
+      } catch (e) {
+        console.warn('Failed to toggle status header visibility for audit', e);
+      }
       showConditionAuditContent();
     } else if (type === 'mrAnalysis') {
       if (mrAnalysisBtn) {
@@ -3385,50 +3463,52 @@
           console.warn('Failed to parse DOS from chart payload', e);
         }
 
-        // Update review status header based on API response status
-        const reviewStatusEl = document.getElementById('reviewStatusHeader');
-        // console.log('🔍 Debug review status:', {
-        //   reviewStatusEl: !!reviewStatusEl,
-        //   apiData: !!apiData,
-        //   status: apiData?.status,
-        //   analystData: payload?.analyst,
-        //   fullApiData: apiData
-        // });
+        // Update review status header based on API response status (robust extraction + cache)
+        try {
+          const reviewStatusEl = document.getElementById('reviewStatusHeader');
+          // status may be in apiData.status or apiData.sts or payload.status
+          const statusVal = (apiData && (typeof apiData.status !== 'undefined' ? apiData.status : (apiData.sts || (payload && payload.status)))) || null;
+          let statusNum = null;
+          if (typeof statusVal === 'number') statusNum = statusVal;
+          else if (typeof statusVal === 'string' && !isNaN(Number(statusVal))) statusNum = Number(statusVal);
 
-        if (reviewStatusEl && apiData) {
-          const status = apiData.status;
-          const analystData = payload && payload.anst;
-
+          // Try several possible places for analyst name
+          let analystName = '';
+          const a = payload || apiData || {};
+          if (a.anst && (a.anst.fn || a.anst.Fname || a.anst.Fname)) {
+            analystName = `${a.anst.fn || a.anst.Fname || ''} ${a.anst.ln || a.anst.Lname || ''}`.trim();
+          } else if (a.analyst && (a.analyst.fn || a.analyst.Fname || a.analyst.name)) {
+            analystName = `${a.analyst.fn || a.analyst.Fname || a.analyst.name || ''} ${a.analyst.ln || a.analyst.Lname || ''}`.trim();
+          } else if (a.analyst_name) {
+            analystName = String(a.analyst_name).trim();
+          } else if (apiData && apiData.analyst_name) {
+            analystName = String(apiData.analyst_name).trim();
+          }
+          console.log("the status is :"+statusNum)
           let statusText = '';
           let statusColor = '#666';
-
-          if (status === 7) {
+          if (statusNum === 7 || statusNum === 8 || statusNum === 9 || statusNum === 10) {
             statusText = 'Under Analyst Review';
-            statusColor = '#ff8c00'; // orangish color
-          } else if (status === 12) {
-            if (analystData && analystData.fn && analystData.ln) {
-              statusText = `Reviewed by ${analystData.fn} ${analystData.ln}`;
-            } else {
-              statusText = 'Reviewed by Analyst';
-            }
-            statusColor = '#007bff'; // blue color
-          } else if (status === 13) {
-            if (analystData && analystData.fn && analystData.ln) {
-              statusText = `Reviewed by ${analystData.fn} ${analystData.ln}`;
-            } else {
-              statusText = 'Reviewed by Analyst';
-            }
-            statusColor = '#28a745'; // green color
+            statusColor = '#ff8c00';
+          } else if (statusNum === 11 || statusNum === 12 || statusNum === 13 || statusNum === 14) {
+            statusText = analystName ? `Reviewed by ${analystName}` : 'Reviewed by Analyst';
+            statusColor = '#007bff';
+          } else if (statusNum === 15) {
+            statusText = analystName ? `Reviewed by ${analystName}` : 'Reviewed by Analyst';
+            statusColor = '#28a745';
           }
 
-          console.log('📝 Setting review status:', { statusText, statusColor, status });
-          reviewStatusEl.textContent = statusText;
-          reviewStatusEl.style.color = statusColor;
-        } else {
-          console.warn('⚠️ Cannot update review status:', {
-            reviewStatusEl: !!reviewStatusEl,
-            apiData: !!apiData
-          });
+          // cache the computed chart status and update DOM if available
+          currentChartStatusText = statusText;
+          currentChartStatusColor = statusColor;
+          if (reviewStatusEl && statusText) {
+            reviewStatusEl.textContent = statusText;
+            reviewStatusEl.style.color = statusColor;
+            reviewStatusEl.style.display = '';
+          }
+          console.log('📝 Chart review status set (preload):', { statusText, statusColor, statusNum, analystName });
+        } catch (e) {
+          console.warn('⚠️ Failed to set chart review status during preload', e);
         }
 
         // Update chart count if on chart view
@@ -3461,6 +3541,44 @@
           }
         }
 
+        // Set review status from audit response `sts` (or related fields) so preload updates header
+        try {
+          const auditStatusEl = document.getElementById('auditReviewStatusHeader');
+          const stsVal = apiData && (typeof apiData.sts !== 'undefined' ? apiData.sts : (apiData.status || (apiData.audit_summary_data && apiData.audit_summary_data.status)));
+          let stsNum = null;
+          if (typeof stsVal === 'number') stsNum = stsVal;
+          else if (typeof stsVal === 'string' && !isNaN(Number(stsVal))) stsNum = Number(stsVal);
+
+          let statusText = '';
+          let statusColor = '#666';
+          if (stsNum === 1) {
+            statusText = 'Under Pending';
+            statusColor = '#ff8c00';
+          } else if (stsNum === 2 || stsNum === 3) {
+            statusText = 'Under Analyst Review';
+            statusColor = '#ff8c00';
+          } else if (stsNum === 4 || stsNum === 5) {
+            statusText = 'Under Auditor Review';
+            statusColor = '#007bff';
+          } else if (stsNum === 6 || stsNum === 7) {
+            statusText = 'Completed';
+            statusColor = '#28a745';
+          } else if (typeof stsVal === 'string' && stsVal && stsVal.trim()) {
+            statusText = String(stsVal);
+          }
+
+          // cache and update DOM (audit-specific)
+          currentAuditStatusText = statusText;
+          currentAuditStatusColor = statusColor;
+          if (auditStatusEl) {
+            auditStatusEl.textContent = statusText;
+            auditStatusEl.style.color = statusColor;
+            auditStatusEl.style.display = '';
+          }
+        } catch (e) {
+          console.warn('Failed to set review status during preload', e);
+        }
+
         // Normalize payload shapes: apiData may be nested in audit_data.data
         let auditArray = [];
         if (apiData && apiData.audit_summary_data && Array.isArray(apiData.audit_summary_data.data)) {
@@ -3485,6 +3603,28 @@
       }
 
       console.log('🎉 Data pre-loading completed');
+
+      // Apply cached statuses to panel if it was created before preload data arrived
+      setTimeout(() => {
+        try {
+          const chartStatusEl = document.getElementById('reviewStatusHeader');
+          const auditStatusEl = document.getElementById('auditReviewStatusHeader');
+          
+          if (chartStatusEl && currentChartStatusText) {
+            console.log('✏️ Applying cached chart status to panel:', currentChartStatusText);
+            chartStatusEl.textContent = currentChartStatusText;
+            chartStatusEl.style.color = currentChartStatusColor || '#666';
+          }
+          
+          if (auditStatusEl && currentAuditStatusText) {
+            console.log('✏️ Applying cached audit status to panel:', currentAuditStatusText);
+            auditStatusEl.textContent = currentAuditStatusText;
+            auditStatusEl.style.color = currentAuditStatusColor || '#666';
+          }
+        } catch (e) {
+          console.warn('⚠️ Failed to apply cached statuses after preload:', e);
+        }
+      }, 50);
 
     } catch (error) {
       console.error('❌ Error during data pre-loading:', error);
