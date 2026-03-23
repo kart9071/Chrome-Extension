@@ -1537,15 +1537,20 @@
     }
 
     const mapped = mapApiAuditRows(auditArray || []);
+
+    // Determine member name from multiple possible API shapes so header updates reliably
+    const memberNameFromApi = (apiData && (
+      apiData.member_name ||
+      (apiData.data && apiData.data.member_name) ||
+      (apiData.audit_summary_data && apiData.audit_summary_data.member_name) ||
+      (apiData.member && ((apiData.member.fname || '') + ' ' + (apiData.member.lname || '')).trim())
+    )) || memberName || currentMemberName || '';
+    const patientElImmediate = document.getElementById('patientNameDisplay');
+    if (patientElImmediate) patientElImmediate.textContent = memberNameFromApi || 'N/A';
+
     if (mapped.length) {
       // replace conditionAuditData
       conditionAuditData = mapped;
-
-      // Update UI elements with audit API response data (not chart data)
-      if (apiData && apiData.member_name) {
-        const patientEl = document.getElementById('patientNameDisplay');
-        if (patientEl) patientEl.textContent = apiData.member_name;
-      }
 
       // Update DOS from audit API response
       if (apiData && apiData.dos) {
@@ -3303,14 +3308,14 @@
 
     // const chartNumber = chartNumberEl ? (chartNumberEl.textContent || chartNumberEl.getAttribute('data-chart-number') || '').trim() : '';
     // const patientName = patientNameEl ? (patientNameEl.textContent || '').trim() : '';
-    // const chartNumber = window.prompt("enter the chart number");
-    // const patientName = window.prompt("enter the patient name");
-    const table = document.querySelector(TABLE_SELECTOR);
-    const ul = document.querySelector(UL_SELECTOR);
-    if (!table || !ul) return;
+    const chartNumber = window.prompt("enter the chart number");
+    const patientName = window.prompt("enter the patient name");
+    // const table = document.querySelector(TABLE_SELECTOR);
+    // const ul = document.querySelector(UL_SELECTOR);
+    // if (!table || !ul) return;
 
-    const chartNumber = document.querySelector("#chartNumber")?.textContent?.trim();
-    const patientName = document.querySelector("#patientName")?.textContent?.trim();
+    // const chartNumber = document.querySelector("#chartNumber")?.textContent?.trim();
+    // const patientName = document.querySelector("#patientName")?.textContent?.trim();
 
 
     if (!chartNumber || !patientName) {
