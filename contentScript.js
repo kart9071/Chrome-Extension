@@ -3619,7 +3619,15 @@
           if (auditStatusEl) {
             auditStatusEl.textContent = statusText;
             auditStatusEl.style.color = statusColor;
-            auditStatusEl.style.display = '';
+            // Only show the audit status immediately if the panel is currently
+            // displaying audit content; otherwise keep it hidden until the
+            // user switches to the Audit view to avoid leaking audit status
+            // into the Chart header during preload.
+            if (contentType === 'conditionAudit') {
+              auditStatusEl.style.display = '';
+            } else {
+              auditStatusEl.style.display = 'none';
+            }
           }
         } catch (e) {
           console.warn('Failed to set review status during preload', e);
