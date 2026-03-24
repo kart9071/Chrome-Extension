@@ -1819,7 +1819,7 @@
         if (reviewStatusEl && chartApiData) {
           const status = chartApiData.status;
           const payload = chartApiData.data || chartApiData;
-          const analystData = payload && payload.analyst;
+          const analystData = payload && payload.anst;
 
           let statusText = '';
           let statusColor = '#666';
@@ -1828,17 +1828,17 @@
             statusText = 'Under Analyst Review';
             statusColor = '#ff8c00';
           } else if (status === 11 || status === 12 || status === 13 || status === 14) {
-            if (analystData && analystData.Fname && analystData.Lname) {
-              statusText = `Reviewed by ${analystData.Fname} ${analystData.Lname}`;
+            if (analystData && analystData.fn && analystData.ln) {
+              statusText = `Reviewed by ${analystData.fn} ${analystData.ln}`;
             } else {
-              statusText = 'Reviewed by Analyst';
+              statusText = 'Under Provider Review';
             }
             statusColor = '#007bff';
           } else if (status === 15) {
-            if (analystData && analystData.Fname && analystData.Lname) {
-              statusText = `Reviewed by ${analystData.Fname} ${analystData.Lname}`;
+            if (analystData && analystData.fn && analystData.ln) {
+              statusText = `Reviewed by ${analystData.fn} ${analystData.ln}`;
             } else {
-              statusText = 'Reviewed by Analyst';
+              statusText = 'Completed';
             }
             statusColor = '#28a745';
           }
@@ -2184,6 +2184,24 @@
       document.getElementById('chartTitle').textContent = 'Medical Record Analysis';
       const subEl = document.getElementById('chartSubTitle');
       if (subEl) subEl.textContent = '';
+      // Ensure MR Analysis uses the same chart review status header
+      try {
+        const reviewStatusEl = document.getElementById('reviewStatusHeader');
+        const auditStatusEl = document.getElementById('auditReviewStatusHeader');
+        if (reviewStatusEl) {
+          reviewStatusEl.style.display = '';
+          // Apply cached chart status if available
+          if (currentChartStatusText) {
+            reviewStatusEl.textContent = currentChartStatusText;
+            reviewStatusEl.style.color = currentChartStatusColor || '#666';
+          }
+        }
+        if (auditStatusEl) {
+          auditStatusEl.style.display = 'none';
+        }
+      } catch (e) {
+        console.warn('Failed to toggle status header visibility for MR Analysis', e);
+      }
       showMRAnalysisContent();
     }
   }
@@ -2380,10 +2398,10 @@
         let statusText = '';
         let statusColor = '#666';
 
-        if (status === 7) {
+        if (status === 7 || status === 8 || status === 9 || status === 10) {
           statusText = 'Under Analyst Review';
           statusColor = '#ff8c00'; // orangish color
-        } else if (status === 11) {
+        } else if (status === 11 || status === 12 || status === 13 || status === 14) {
           if (analystData && analystData.fn && analystData.ln) {
             statusText = `Reviewed by ${analystData.fn} ${analystData.ln}`;
           } else {
@@ -3512,6 +3530,7 @@
             analystName = String(apiData.analyst_name).trim();
           }
           console.log("the status is :"+statusNum)
+          console.log("the analyst name is :"+analystName)
           let statusText = '';
           let statusColor = '#666';
           if (statusNum === 7 || statusNum === 8 || statusNum === 9 || statusNum === 10) {
