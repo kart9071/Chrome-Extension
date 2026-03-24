@@ -2405,14 +2405,14 @@
           if (analystData && analystData.fn && analystData.ln) {
             statusText = `Reviewed by ${analystData.fn} ${analystData.ln}`;
           } else {
-            statusText = 'Reviewed by Analyst';
+            statusText = 'Under Provider Review';
           }
           statusColor = '#007bff'; // blue color
         } else if (status === 15) {
           if (analystData && analystData.fn && analystData.ln) {
             statusText = `Reviewed by ${analystData.fn} ${analystData.ln}`;
           } else {
-            statusText = 'Reviewed by Analyst';
+            statusText = 'Completed';
           }
           statusColor = '#28a745'; // green color
         }
