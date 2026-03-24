@@ -1442,7 +1442,16 @@
   function isNotFoundError(err) {
     if (!err || !err.message) return false;
     const m = err.message.toString().toLowerCase();
-    return m.includes('404') || m.includes('not found') || m.includes('no data') || m.includes('not present');
+    // Treat 404-like and 500/internal server errors as "not present" per UX requirement
+    return (
+      m.includes('404') ||
+      m.includes('not found') ||
+      m.includes('no data') ||
+      m.includes('not present') ||
+      m.includes('500') ||
+      m.includes('internal server') ||
+      m.includes('server error')
+    );
   }
 
   // Helper: show a unified "not present" UI for a given API area
@@ -1466,6 +1475,11 @@
       `;
     }
     if (resultsEl) resultsEl.textContent = '';
+    // If chart API not present, ensure header count shows 0 (not Loading)
+    if (area === 'chart') {
+      const countEl = document.getElementById('chartCount');
+      if (countEl) countEl.textContent = `[ 0 ]`;
+    }
     if (patientEl) patientEl.textContent = currentMemberName || 'N/A';
   }
 
@@ -2107,6 +2121,10 @@
 
     if (type === 'chart') {
       if (chartBtn) chartBtn.classList.add('active');
+      if (mrAnalysisBtn) {
+        mrAnalysisBtn.classList.remove('active');
+        mrAnalysisBtn.setAttribute('data-tooltip', 'MR Analysis');
+      }
       if (conditionAuditBtn) {
         conditionAuditBtn.classList.remove('active');
         conditionAuditBtn.setAttribute('data-tooltip', 'Audit Details');
@@ -2132,6 +2150,10 @@
         conditionAuditBtn.setAttribute('data-tooltip', 'Audit Findings');
       }
       if (chartBtn) chartBtn.classList.remove('active');
+      if (mrAnalysisBtn) {
+        mrAnalysisBtn.classList.remove('active');
+        mrAnalysisBtn.setAttribute('data-tooltip', 'MR Analysis');
+      }
       if (chartBtn) chartBtn.setAttribute('data-tooltip', 'Chart Details');
       document.getElementById('chartTitle').textContent = 'Audit Details';
       const subEl = document.getElementById('chartSubTitle');
@@ -2408,6 +2430,7 @@
     const floatingButtons = document.getElementById('floatingButtons');
     const chartBtn = document.getElementById('chartBtn');
     const conditionAuditBtn = document.getElementById('conditionAuditBtn');
+    const mrAnalysisBtn = document.getElementById('mrAnalysisBtn');
 
     div.classList.remove('show');
     backdrop.classList.remove('visible');
@@ -2419,6 +2442,10 @@
     if (conditionAuditBtn) {
       conditionAuditBtn.classList.remove('active');
       conditionAuditBtn.setAttribute('data-tooltip', 'Audit Details');
+    }
+    if (mrAnalysisBtn) {
+      mrAnalysisBtn.classList.remove('active');
+      mrAnalysisBtn.setAttribute('data-tooltip', 'MR Analysis');
     }
     chartBtn.setAttribute('data-tooltip', 'Chart Details');
 
