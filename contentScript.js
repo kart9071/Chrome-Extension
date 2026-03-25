@@ -74,7 +74,8 @@
   // current member context (used for API calls)
   let currentMemberId = null;
   let currentMemberName = null;
-  let currentDos = null; // formatted DOS (date of service) to show in UI
+  let currentDos = null; // formatted DOS from chart API (for chart and MR Analysis UI)
+  let currentAuditDos = null; // formatted DOS from audit API (for audit UI only)
   let isChartLoading = false;
   // Medical Conditions Data (populated from API)
   const medicalConditionsData = [];
@@ -1609,12 +1610,16 @@
       // replace conditionAuditData
       conditionAuditData = mapped;
 
-      // Update DOS from audit API response
+      // Update DOS from audit API response (store separately, do NOT overwrite chart DOS)
       if (apiData && apiData.dos) {
         try {
           const formatted = new Date(apiData.dos).toLocaleDateString();
-          const resultsEl = document.getElementById('chartResultsCount');
-          if (resultsEl) resultsEl.innerHTML = `<strong>DOS: ${formatted}</strong>`;
+          currentAuditDos = formatted;
+          // Update audit DOS display element if audit view is active
+          if (contentType === 'conditionAudit') {
+            const auditResultsEl = document.getElementById('auditResultsCount');
+            if (auditResultsEl) auditResultsEl.innerHTML = `<strong>DOS: ${formatted}</strong>`;
+          }
         } catch (e) {
           console.warn('Failed to parse DOS from audit payload', e);
         }
@@ -2050,6 +2055,7 @@
               <div id="auditReviewStatusHeader" style="font-size:12px;font-weight:600;color:#666;display:none;"></div>
             </div>
             <div id="chartResultsCount" class="chart-subtitle" style="text-align:right;"></div>
+            <div id="auditResultsCount" class="chart-subtitle" style="text-align:right;display:none;"></div>
           </div>
         </div>
         <button class="close-btn" id="closeChartDiv">✕</button>
@@ -2133,10 +2139,15 @@
       // Keep title static and show loading state in the bracketed count while data fetches
       const titleEl = document.getElementById('chartTitle');
       if (titleEl) titleEl.innerHTML = 'HCC Opportunities <span id="chartCount" style="font-weight:600;margin-left:8px;">[ Loading... ]</span>';
-      // Move the date/metadata to the right-aligned results area.
-      // Keep the left subtitle empty; show "Chart reviewed on {date}" on the right instead.
+      // Move the date/metadata to the right-aligned results area (chart/MR DOS).
+      // Keep the left subtitle empty; show chart DOS on the right instead.
       const resultsEl = document.getElementById('chartResultsCount');
-      if (resultsEl) resultsEl.innerHTML = currentDos ? `<strong>DOS:${currentDos}</strong>` : '';
+      const auditResultsEl = document.getElementById('auditResultsCount');
+      if (resultsEl) {
+        resultsEl.style.display = '';  // Ensure element is visible
+        resultsEl.innerHTML = currentDos ? `<strong>DOS: ${currentDos}</strong>` : '';
+      }
+      if (auditResultsEl) auditResultsEl.style.display = 'none';
       // Show chart status header, hide audit header (don't clear status—showChartDetails handles that on fetch)
       const reviewStatusEl = document.getElementById('reviewStatusHeader');
       const auditStatusEl = document.getElementById('auditReviewStatusHeader');
@@ -2158,16 +2169,29 @@
       document.getElementById('chartTitle').textContent = 'Audit Details';
       const subEl = document.getElementById('chartSubTitle');
       if (subEl) subEl.textContent = '';
-      // show audit-specific status and hide chart status
+      // show audit-specific status and hide chart status; swap DOS elements
       try {
         const reviewStatusElLocal = document.getElementById('reviewStatusHeader');
         const auditStatusElLocal = document.getElementById('auditReviewStatusHeader');
         if (reviewStatusElLocal) reviewStatusElLocal.style.display = 'none';
         if (auditStatusElLocal) auditStatusElLocal.style.display = '';
+        // Hide chart DOS, show audit DOS
+        const chartResultsElLocal = document.getElementById('chartResultsCount');
+        const auditResultsElLocal = document.getElementById('auditResultsCount');
+        if (chartResultsElLocal) chartResultsElLocal.style.display = 'none';
+        if (auditResultsElLocal) {
+          auditResultsElLocal.style.display = '';
+          auditResultsElLocal.innerHTML = currentAuditDos ? `<strong>DOS: ${currentAuditDos}</strong>` : '';
+        }
       } catch (e) {
         console.warn('Failed to toggle status header visibility for audit', e);
       }
-      showConditionAuditContent();
+      // Fetch latest audit details to ensure DOS is fresh
+      if (currentMemberId && currentMemberName) {
+        fetchAuditDetails(currentMemberId, currentMemberName).catch(e => console.error('Error fetching audit details:', e));
+      } else {
+        showConditionAuditContent();
+      }
     } else if (type === 'mrAnalysis') {
       if (mrAnalysisBtn) {
         mrAnalysisBtn.classList.add('active');
@@ -2184,7 +2208,7 @@
       document.getElementById('chartTitle').textContent = 'Medical Record Analysis';
       const subEl = document.getElementById('chartSubTitle');
       if (subEl) subEl.textContent = '';
-      // Ensure MR Analysis uses the same chart review status header
+      // Ensure MR Analysis uses the same chart review status header and chart DOS
       try {
         const reviewStatusEl = document.getElementById('reviewStatusHeader');
         const auditStatusEl = document.getElementById('auditReviewStatusHeader');
@@ -2199,6 +2223,14 @@
         if (auditStatusEl) {
           auditStatusEl.style.display = 'none';
         }
+        // Show chart DOS, hide audit DOS (MR Analysis uses chart DOS)
+        const chartResultsEl = document.getElementById('chartResultsCount');
+        const auditResultsEl = document.getElementById('auditResultsCount');
+        if (chartResultsEl) {
+          chartResultsEl.style.display = '';
+          chartResultsEl.innerHTML = currentDos ? `<strong>DOS: ${currentDos}</strong>` : '';
+        }
+        if (auditResultsEl) auditResultsEl.style.display = 'none';
       } catch (e) {
         console.warn('Failed to toggle status header visibility for MR Analysis', e);
       }
@@ -3576,12 +3608,12 @@
           console.log('📝 Updated member name from audit API:', currentMemberName);
         }
 
-        // Extract DOS from audit response (override if available)
+        // Extract DOS from audit response (store separately; do NOT overwrite chart DOS)
         if (apiData && apiData.dos) {
           try {
             const dosDate = new Date(apiData.dos);
-            currentDos = dosDate.toLocaleDateString();
-            console.log('📅 Updated DOS from audit API:', currentDos);
+            currentAuditDos = dosDate.toLocaleDateString();
+            console.log('📅 Updated audit DOS (kept separate from chart):', currentAuditDos);
           } catch (e) {
             console.warn('Failed to parse DOS from audit payload', e);
           }
