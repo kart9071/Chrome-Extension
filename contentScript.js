@@ -1462,7 +1462,7 @@
     const titleMap = {
       chart: 'Chart Details',
       conditionAudit: 'Audit Details',
-      mrAnalysis: 'MR Analysis'
+      mrAnalysis: 'MR Details'
     };
     const title = titleMap[area] || 'Data';
     if (chartContent) {
@@ -1735,7 +1735,7 @@
         </svg>
 
       </button>
-      <button class="floating-icon-btn mr-analysis-btn" id="mrAnalysisBtn" data-tooltip="MR Analysis" aria-label="Medical Record Analysis">
+      <button class="floating-icon-btn mr-analysis-btn" id="mrAnalysisBtn" data-tooltip="MR Details" aria-label="Medical Record Analysis">
         <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none">
             <defs>
               <linearGradient id="analysisGradient" x1="0" y1="0" x2="24" y2="24" gradientUnits="userSpaceOnUse">
@@ -2123,7 +2123,7 @@
       if (chartBtn) chartBtn.classList.add('active');
       if (mrAnalysisBtn) {
         mrAnalysisBtn.classList.remove('active');
-        mrAnalysisBtn.setAttribute('data-tooltip', 'MR Analysis');
+        mrAnalysisBtn.setAttribute('data-tooltip', 'MR Details'); //this is changed
       }
       if (conditionAuditBtn) {
         conditionAuditBtn.classList.remove('active');
@@ -2152,7 +2152,7 @@
       if (chartBtn) chartBtn.classList.remove('active');
       if (mrAnalysisBtn) {
         mrAnalysisBtn.classList.remove('active');
-        mrAnalysisBtn.setAttribute('data-tooltip', 'MR Analysis');
+        mrAnalysisBtn.setAttribute('data-tooltip', 'MR Details'); // this id changed
       }
       if (chartBtn) chartBtn.setAttribute('data-tooltip', 'Chart Details');
       document.getElementById('chartTitle').textContent = 'Audit Details';
