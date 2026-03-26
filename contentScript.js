@@ -1468,9 +1468,9 @@
     const title = titleMap[area] || 'Data';
     if (chartContent) {
       chartContent.innerHTML = `
-        <div style="text-align: center; padding: 40px 20px; color: #6c757d;">
-          <div style="font-size: 28px; margin-bottom: 10px;">ℹ️</div>
-          <div style="font-size:16px;font-weight:600;">The ${escapeHtml(title)} for this member is not present.</div>
+        <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;min-height:300px;text-align:center;padding:40px 20px;color:#6c757d;">
+          <div style="font-size:36px;margin-bottom:14px;">ℹ️</div>
+          <div style="font-size:16px;font-weight:600;color:#374151;">The ${escapeHtml(title)} for this member is not present.</div>
           <div style="margin-top:8px;font-size:13px;color:#9ca3af;">If you believe this is an error, try refreshing or contact support.</div>
         </div>
       `;
@@ -1685,28 +1685,6 @@
     buttonsDiv.className = 'floating-buttons';
 
     buttonsDiv.innerHTML = `
-      <button class="floating-icon-btn chart-btn" id="chartBtn" data-tooltip="Chart Details" aria-label="Chart Details">
-        <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-          <!-- Gradient Definition -->
-          <defs>
-            <linearGradient id="medicalGradient" x1="0" y1="0" x2="24" y2="24" gradientUnits="userSpaceOnUse">
-              <stop offset="0%" stop-color="#000000ff"/>
-              <stop offset="100%" stop-color="#070707ff"/>
-            </linearGradient>
-          </defs>
-
-          <!-- Background Square -->
-          <rect width="18" height="18" x="3" y="3" rx="3" stroke="url(#medicalGradient)" stroke-width="2.5" fill="rgba(0, 184, 217, 0.08)" />
-
-          <!-- Chart Lines -->
-          <path d="M9 8h7" stroke="url(#medicalGradient)" stroke-width="2.5" stroke-linecap="round"/>
-          <path d="M8 12h6" stroke="url(#medicalGradient)" stroke-width="2.5" stroke-linecap="round"/>
-          <path d="M11 16h5" stroke="url(#medicalGradient)" stroke-width="2.5" stroke-linecap="round"/>
-
-          <!-- Optional subtle highlight for a polished look -->
-          <rect width="18" height="18" x="3" y="3" rx="3" stroke="white" stroke-opacity="0.2" stroke-width="1" />
-        </svg>
-      </button>
       <button class="floating-icon-btn condition-audit-btn" id="conditionAuditBtn" data-tooltip="Audit Findings" aria-label="Audit Details">
         <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none">
             <defs>
@@ -1739,6 +1717,28 @@
             <rect x="5" y="4" width="14" height="17" rx="2.5" stroke="black" stroke-opacity="0.08" stroke-width="1"/>
         </svg>
 
+      </button>
+      <button class="floating-icon-btn chart-btn" id="chartBtn" data-tooltip="Chart Details" aria-label="Chart Details">
+        <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <!-- Gradient Definition -->
+          <defs>
+            <linearGradient id="medicalGradient" x1="0" y1="0" x2="24" y2="24" gradientUnits="userSpaceOnUse">
+              <stop offset="0%" stop-color="#000000ff"/>
+              <stop offset="100%" stop-color="#070707ff"/>
+            </linearGradient>
+          </defs>
+
+          <!-- Background Square -->
+          <rect width="18" height="18" x="3" y="3" rx="3" stroke="url(#medicalGradient)" stroke-width="2.5" fill="rgba(0, 184, 217, 0.08)" />
+
+          <!-- Chart Lines -->
+          <path d="M9 8h7" stroke="url(#medicalGradient)" stroke-width="2.5" stroke-linecap="round"/>
+          <path d="M8 12h6" stroke="url(#medicalGradient)" stroke-width="2.5" stroke-linecap="round"/>
+          <path d="M11 16h5" stroke="url(#medicalGradient)" stroke-width="2.5" stroke-linecap="round"/>
+
+          <!-- Optional subtle highlight for a polished look -->
+          <rect width="18" height="18" x="3" y="3" rx="3" stroke="white" stroke-opacity="0.2" stroke-width="1" />
+        </svg>
       </button>
       <button class="floating-icon-btn mr-analysis-btn" id="mrAnalysisBtn" data-tooltip="MR Details" aria-label="Medical Record Analysis">
         <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none">
@@ -3463,14 +3463,14 @@
 
     // const chartNumber = chartNumberEl ? (chartNumberEl.textContent || chartNumberEl.getAttribute('data-chart-number') || '').trim() : '';
     // const patientName = patientNameEl ? (patientNameEl.textContent || '').trim() : '';
-    const chartNumber = window.prompt("enter the chart number");
-    const patientName = window.prompt("enter the patient name");
-    // const table = document.querySelector(TABLE_SELECTOR);
-    // const ul = document.querySelector(UL_SELECTOR);
-    // if (!table || !ul) return;
+    // const chartNumber = window.prompt("enter the chart number");
+    // const patientName = window.prompt("enter the patient name");
+    const table = document.querySelector(TABLE_SELECTOR);
+    const ul = document.querySelector(UL_SELECTOR);
+    if (!table || !ul) return;
 
-    // const chartNumber = document.querySelector("#chartNumber")?.textContent?.trim();
-    // const patientName = document.querySelector("#patientName")?.textContent?.trim();
+    const chartNumber = document.querySelector("#chartNumber")?.textContent?.trim();
+    const patientName = document.querySelector("#patientName")?.textContent?.trim();
 
 
     if (!chartNumber || !patientName) {
@@ -3582,7 +3582,12 @@
           if (reviewStatusEl && statusText) {
             reviewStatusEl.textContent = statusText;
             reviewStatusEl.style.color = statusColor;
-            reviewStatusEl.style.display = '';
+            // Only show chart status when chart/MR view is active; hide it during audit view
+            if (contentType === 'conditionAudit') {
+              reviewStatusEl.style.display = 'none';
+            } else {
+              reviewStatusEl.style.display = '';
+            }
           }
           console.log('📝 Chart review status set (preload):', { statusText, statusColor, statusNum, analystName });
         } catch (e) {
