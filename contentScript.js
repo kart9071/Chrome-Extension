@@ -3281,13 +3281,13 @@
       const line = lines[i];
 
       // Check if we've found the Historical Substance Use Analysis section
-      if (line.includes('Historical Substance Use Analysis')) {
+      if (line.toLowerCase().includes('historical substance use analysis')) {
         foundHistoricalSection = true;
       }
 
       // Stop parsing after completing the Historical Substance Use Analysis table
       if (foundHistoricalSection && completedHistoricalTable &&
-        (line.startsWith('###') || line.includes('CODE CANDIDATE ANALYSIS'))) {
+        (line.startsWith('###') || line.toUpperCase().includes('CODE CANDIDATE ANALYSIS'))) {
         break;
       }
 
