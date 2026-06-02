@@ -6,7 +6,14 @@
 
   let observer;
   let hasLoaded = false;
+  // Global variable
+  let dqaData = [];
 
+  window.dqaCategoryFilter =
+    window.dqaCategoryFilter || 'HCC';
+
+  window.dqaCategoryFilters =
+    window.dqaCategoryFilters || ['HCC', 'RXHCC'];
   // Simple HTML escaper for safe insertion into templates
   function escapeHtml(input) {
     if (input === null || typeof input === 'undefined') return '';
@@ -16,6 +23,164 @@
       .replace(/>/g, '&gt;')
       .replace(/"/g, '&quot;')
       .replace(/'/g, '&#39;');
+  }
+
+  function injectAuditStyles() {
+
+    if (document.getElementById('audit-accordion-styles')) return;
+
+    const style = document.createElement('style');
+
+    style.id = 'audit-accordion-styles';
+
+    style.textContent = `
+    .audit-accordion-container {
+      display: flex !important;
+      flex-direction: column !important;
+      gap: 8px !important;
+      padding: 8px !important;
+      background: #f8f9fa !important;
+    }
+
+    .audit-card {
+      background: #ffffff !important;
+      border: 1px solid #e5e7eb !important;
+      border-radius: 8px !important;
+      overflow: hidden !important;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08) !important;
+    }
+
+    .audit-card-header {
+      padding: 12px !important;
+      display: flex !important;
+      justify-content: space-between !important;
+      align-items: flex-start !important;
+      gap: 12px !important;
+    }
+
+    .audit-card-info {
+      flex: 1 !important;
+    }
+
+    .audit-condition-name {
+      font-size: 14px !important;
+      font-weight: 700 !important;
+      color: #111827 !important;
+      margin-bottom: 4px !important;
+    }
+
+    .audit-codes-row {
+      display: flex !important;
+      gap: 8px !important;
+      flex-wrap: wrap !important;
+      font-size: 12px !important;
+      color: #6b7280 !important;
+    }
+
+    .audit-status-badge {
+      padding: 6px 10px !important;
+      border-radius: 999px !important;
+      font-size: 11px !important;
+      font-weight: 700 !important;
+      white-space: nowrap !important;
+    }
+
+    .status-acceptable {
+      background: #ecfdf5 !important;
+      color: #065f46 !important;
+    }
+
+    .status-delete {
+      background: #fef2f2 !important;
+      color: #991b1b !important;
+    }
+
+    .status-query-required {
+      background: #fffbeb !important;
+      color: #92400e !important;
+    }
+
+    .status-not-applicable {
+      background: #eff6ff !important;
+      color: #1d4ed8 !important;
+    }
+
+    .audit-card-body {
+      padding: 12px !important;
+      border-top: 1px solid #f3f4f6 !important;
+    }
+
+    .dqa-filter-tabs {
+  display: flex !important;
+  gap: 8px !important;
+  padding: 8px !important;
+  background: #ffffff !important;
+  border-bottom: 1px solid #e5e7eb !important;
+}
+
+.dqa-filter-btn {
+  border: 1px solid #cbd5e1 !important;
+  background: #f8fafc !important;
+  color: #334155 !important;
+  padding: 8px 16px !important;
+  border-radius: 8px 8px 0 0 !important;
+  cursor: pointer !important;
+  font-size: 12px !important;
+  font-weight: 700 !important;
+}
+
+.dqa-filter-btn:hover {
+  background: #e2e8f0 !important;
+}
+
+.dqa-filter-btn.active {
+  background: #114391 !important;
+  color: white !important;
+  border-color: #114391 !important;
+}
+ .audit-box {
+  display: grid !important;
+  grid-template-columns: 150px 1fr !important;
+  column-gap: 8px !important;
+  margin-bottom: 4px !important;
+  align-items: center !important;
+}
+
+.audit-label {
+  font-size: 12px !important;
+  font-weight: 700 !important;
+  color: #374151 !important;
+  text-align: left !important;
+  line-height: 1.2 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.audit-text {
+  font-size: 12px !important;
+  color: #111827 !important;
+  line-height: 1.5 !important;
+
+  text-align: left !important;
+  white-space: normal !important;
+  word-break: break-word !important;
+
+  margin: 0 !important;
+  padding: 0 !important;
+
+  justify-self: start !important;
+  align-self: start !important;
+  width: 100% !important;
+
+  display: block !important;
+}
+
+
+
+
+  `;
+
+    document.head.appendChild(style);
   }
 
   function formatCodeExplanationHtml(raw) {
@@ -88,6 +253,465 @@
   let currentChartStatusText = '';
   let currentChartStatusColor = '';
 
+
+  if (!window.dqaStrengthFilter) {
+    window.dqaStrengthFilter = "ALL";
+  }
+
+  function showDQAContent() {
+
+    injectAuditStyles();
+
+    const chartContent =
+      document.getElementById('chartContent');
+
+    if (!chartContent) return;
+
+    if (!window.expandedDQARows) {
+      window.expandedDQARows = new Set();
+    }
+
+    const STATUS_OPTIONS = [
+      {
+        label: "Strong",
+        value: "STRONG",
+        class: "status-acceptable"
+      },
+      {
+        label: "Medium",
+        value: "MEDIUM",
+        class: "status-query-required"
+      },
+      {
+        label: "Weak",
+        value: "WEAK",
+        class: "status-delete"
+      }
+    ];
+
+    // const filteredData =
+    //   window.dqaStrengthFilter === "ALL"
+    //     ? dqaData
+    //     : dqaData.filter(row =>
+    //       (row.documentation_strength || "")
+    //         .trim()
+    //         .toUpperCase() === window.dqaStrengthFilter
+    //     );
+
+    let filteredData = [...dqaData];
+
+    // Existing Strong / Moderate / Weak filter
+    if (window.dqaStrengthFilter !== "ALL") {
+
+      filteredData = filteredData.filter(row =>
+        (row.documentation_strength || '')
+          .trim()
+          .toUpperCase() === window.dqaStrengthFilter
+      );
+    }
+
+    const selectedFilters =
+      window.dqaCategoryFilters || [];
+
+    filteredData = filteredData.filter(row => {
+
+      const hcc =
+        (row.hcc || '').toString().trim();
+
+      const rxHcc =
+        (row.rx_hcc || '').toString().trim();
+
+      let matches = false;
+
+      if (
+        selectedFilters.includes('HCC') &&
+        hcc !== ''
+      ) {
+        matches = true;
+      }
+
+      if (
+        selectedFilters.includes('RXHCC') &&
+        rxHcc !== ''
+      ) {
+        matches = true;
+      }
+
+      if (
+        selectedFilters.includes('NON-HCC') &&
+        hcc === '' &&
+        rxHcc === ''
+      ) {
+        matches = true;
+      }
+
+      return matches;
+
+    });
+    console.log("filtered data:", filteredData)
+    const cardsHtml = filteredData.map((row, i) => {
+
+      const rowId =
+        String(row.id || i);
+
+      const isExpanded =
+        window.expandedDQARows.has(rowId);
+
+      const icdCode =
+        row["ICD-10"] || '';
+
+      const statusValue =
+        (row.documentation_strength || '')
+          .trim()
+          .toUpperCase();
+
+      let statusInfo =
+        STATUS_OPTIONS.find(
+          opt => opt.value === statusValue
+        );
+
+      if (!statusInfo) {
+
+        statusInfo = {
+          label: statusValue || 'Unknown',
+          class: 'status-query-required'
+        };
+      }
+
+      return `
+      <div class="audit-card ${isExpanded ? 'expanded' : ''}" data-row-id="${rowId}">
+
+        <div class="audit-card-header">
+
+          <div class="audit-card-info">
+
+            <div class="audit-condition-name">
+              ${escapeHtml(row.Condition || '')}
+            </div>
+
+            <div class="audit-codes-row">   
+
+            </div>
+
+          </div>
+          
+
+        </div>
+
+        ${isExpanded
+          ? renderExpandedDqaDetails(row)
+          : ''
+        }
+
+      </div>
+    `;
+
+    }).join('');
+
+    chartContent.innerHTML = `
+     <div class="dqa-filter-tabs">
+
+    <button
+      class="dqa-filter-btn ${window.dqaStrengthFilter === 'STRONG' ? 'active' : ''}"
+      data-filter="STRONG">
+      Strong
+    </button>
+
+    <button
+      class="dqa-filter-btn ${window.dqaStrengthFilter === 'MODERATE' ? 'active' : ''}"
+      data-filter="MODERATE">
+      Moderate
+    </button>
+
+    <button
+      class="dqa-filter-btn ${window.dqaStrengthFilter === 'WEAK' ? 'active' : ''}"
+      data-filter="WEAK">
+      Weak
+    </button>
+
+  </div>
+    <div class="audit-accordion-container">
+
+      ${filteredData.length === 0
+        ? `
+          <div style="
+            text-align:center;
+            padding:40px 20px;
+            font-size:14px;
+            color:#6c757d;
+            font-style:italic;
+          ">
+            No DQA records found
+          </div>
+        `
+        : cardsHtml
+      }
+
+    </div>
+  `;
+
+    const filterButtons =
+      chartContent.querySelectorAll('.dqa-filter-btn');
+
+
+
+    filterButtons.forEach(btn => {
+
+      btn.addEventListener('click', e => {
+
+        e.stopPropagation();
+
+        window.dqaStrengthFilter =
+          btn.dataset.filter;
+
+        showDQAContent();
+
+      });
+
+    });
+
+    const headers =
+      chartContent.querySelectorAll('.audit-card-header');
+
+    headers.forEach(header => {
+
+      header.addEventListener('click', () => {
+
+        const card =
+          header.closest('.audit-card');
+
+        const rowId =
+          card.getAttribute('data-row-id');
+
+        if (window.expandedDQARows.has(rowId)) {
+          window.expandedDQARows.delete(rowId);
+        } else {
+          window.expandedDQARows.add(rowId);
+        }
+
+        showDQAContent();
+
+      });
+
+    });
+
+    const resultsEl =
+      document.getElementById('chartResultsCount');
+
+    // if (resultsEl) {
+    //   resultsEl.textContent =
+    //     `${filteredData.length} records`;
+    // }
+    if (resultsEl) {
+
+      resultsEl.innerHTML = `
+
+    <div style="
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:16px;
+      flex-wrap:wrap;
+    ">
+
+      <div style="
+        display:flex;
+        align-items:center;
+        gap:12px;
+        font-size:13px;
+      ">
+
+        <label style="display:flex;align-items:center;gap:4px;cursor:pointer;">
+          <input
+            type="checkbox"
+            class="dqa-category-checkbox"
+            value="HCC"
+            ${window.dqaCategoryFilters?.includes('HCC') ? 'checked' : ''}
+          />
+          HCC
+        </label>
+
+        <label style="display:flex;align-items:center;gap:4px;cursor:pointer;">
+          <input
+            type="checkbox"
+            class="dqa-category-checkbox"
+            value="RXHCC"
+            ${window.dqaCategoryFilters?.includes('RXHCC') ? 'checked' : ''}
+          />
+          RXHCC
+        </label>
+
+        <label style="display:flex;align-items:center;gap:4px;cursor:pointer;">
+          <input
+            type="checkbox"
+            class="dqa-category-checkbox"
+            value="NON-HCC"
+            ${window.dqaCategoryFilters?.includes('NON-HCC') ? 'checked' : ''}
+          />
+          NON-HCC
+        </label>
+
+      </div>
+
+    </div>
+
+  `;
+
+      const checkboxes =
+        resultsEl.querySelectorAll('.dqa-category-checkbox');
+
+      checkboxes.forEach(cb => {
+
+        cb.addEventListener('change', () => {
+
+          if (!window.dqaCategoryFilters) {
+            window.dqaCategoryFilters = [];
+          }
+
+          if (cb.checked) {
+
+            if (
+              !window.dqaCategoryFilters.includes(cb.value)
+            ) {
+              window.dqaCategoryFilters.push(cb.value);
+            }
+
+          } else {
+
+            window.dqaCategoryFilters =
+              window.dqaCategoryFilters.filter(
+                item => item !== cb.value
+              );
+
+          }
+
+          console.log(
+            'Selected Filters:',
+            window.dqaCategoryFilters
+          );
+          showDQAContent();
+
+        });
+
+      });
+
+    }
+
+  }
+  function renderExpandedDqaDetails(row) {
+
+    const encounterDates =
+      row.encounter_documented || '';
+
+    const meatPresent =
+      row.meat_present || '';
+
+    const meatAbsent =
+      row.meat_absent || '';
+
+    const supportingEvidence =
+      row.supporting_clinical_evidence || '';
+
+    const documentationStrength =
+      row.documentation_strength || '';
+
+    const comment =
+      row.comment || '';
+
+    return `
+    <div class="audit-card-body">
+
+      ${encounterDates ? `
+        <div class="audit-box">
+
+          <div class="audit-label">
+            Encounter Dates:
+          </div>
+
+
+          <div class="audit-text">
+            ${escapeHtml(encounterDates)}
+          </div>
+
+        </div>
+      ` : ''}
+
+      ${meatPresent ? `
+        <div class="audit-box">
+
+          <div class="audit-label">
+            MEAT Present :
+          </div>
+
+          <div class="audit-text">
+            ${escapeHtml(meatPresent).trim()}
+          </div>
+
+        </div>
+      ` : ''}
+
+      ${meatAbsent ? `
+        <div class="audit-box">
+
+          <div class="audit-label">
+            MEAT Absent :
+          </div>
+
+          <div class="audit-text">
+            ${escapeHtml(meatAbsent).trim()}
+          </div>
+
+        </div>
+      ` : ''}
+
+      ${supportingEvidence ? `
+        <div class="audit-box">
+
+          <div class="audit-label">
+            Supporting Evidence :
+          </div>
+
+          <div class="audit-text">
+            ${escapeHtml(supportingEvidence).trim()}
+          </div>
+
+        </div>
+      ` : ''}
+
+      ${documentationStrength ? `
+        <div class="audit-box">
+
+          <div class="audit-label">
+            Quality :
+          </div>
+
+
+          <div class="audit-text">
+            ${escapeHtml(documentationStrength)}
+          </div>
+
+        </div>
+      ` : ''}
+
+      ${comment ? `
+        <div class="audit-box">
+
+          <div class="audit-label">
+            Comment
+          </div>
+
+          <div class="audit-separator">:</div>
+
+          <div class="audit-text">
+            ${escapeHtml(comment)}
+          </div>
+
+        </div>
+      ` : ''}
+
+    </div>
+  `;
+  }
   // Add CSS styles
   function addStyles() {
     const style = document.createElement('style');
@@ -263,6 +887,19 @@
 
        .floating-icon-btn.mr-analysis-btn.active {
          background: #10B981 !important;
+         color: #fff !important;
+       }
+
+       .floating-icon-btn.member-risk-btn.active::before {
+         background: linear-gradient(135deg, #8B5CF6 0%, #6366F1 100%) !important;
+       }
+
+       .floating-icon-btn.member-risk-btn.active::after {
+         border-left-color: #8B5CF6 !important;
+       }
+
+       .floating-icon-btn.member-risk-btn.active {
+         background: #8B5CF6 !important;
          color: #fff !important;
        }
 
@@ -1673,7 +2310,526 @@
     });
   }
 
+  // function showMemberRiskProfileContent() {
+  //   const chartContent = document.getElementById('chartContent');
+  //   if (!chartContent) return;
 
+  //   chartContent.innerHTML = `
+  //     <div style="display:flex;height:100%;min-height:100%;overflow:hidden;">
+
+  //       <div style="width:240px;background:#f8fafc;color:#0f172a;padding:20px;display:flex;flex-direction:column;gap:16px;overflow-y:auto;align-items:center;justify-content:center;">
+  //         <button class="risk-menu-item active" data-target="risk-scores" style="width:100%;max-width:220px;padding:16px;border-radius:18px;border:1px solid #cbd5e1;background:white;color:#0f172a;font-size:15px;font-weight:600;cursor:pointer;text-align:center;box-shadow:0 1px 3px rgba(15,23,42,0.08);">Clinical Scores</button>
+  //         <button class="risk-menu-item" data-target="risk-assessment" style="width:100%;max-width:220px;padding:16px;border-radius:18px;border:1px solid #cbd5e1;background:white;color:#0f172a;font-size:15px;font-weight:600;cursor:pointer;text-align:center;box-shadow:0 1px 3px rgba(15,23,42,0.08);">Clinical Assessment</button>
+  //         <button class="risk-menu-item" data-target="risk-indicators" style="width:100%;max-width:220px;padding:16px;border-radius:18px;border:1px solid #cbd5e1;background:white;color:#0f172a;font-size:15px;font-weight:600;cursor:pointer;text-align:center;box-shadow:0 1px 3px rgba(15,23,42,0.08);">Risk Indicators</button>
+  //       </div>
+
+  //       <div style="flex:1;overflow-y:auto;padding:20px;background:#f1f5f9;">
+  //         <div id="risk-scores" class="risk-section active" style="display:block;">
+  //           <div style="display:flex;flex-direction:column;gap:14px;">
+  //             <div style="background:white;border-radius:16px;padding:20px;box-shadow:0 2px 10px rgba(0,0,0,0.06);border-left:6px solid #2563eb;">
+  //               <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
+  //                 <div style="font-size:16px;font-weight:700;color:#0f172a;">RI-6 — Care Gap Urgency Index</div>
+  //                 <span style="padding:6px 12px;border-radius:20px;background:#dc2626;color:#fff;font-size:12px;font-weight:700;">HIGH</span>
+  //               </div>
+  //               <div style="margin-top:14px;font-size:15px;color:#334155;font-weight:600;">Score: 72 / 100</div>
+  //               <div style="height:10px;background:#e2e8f0;border-radius:20px;overflow:hidden;margin-top:16px;">
+  //                 <div style="width:72%;height:100%;background:#2563eb;"></div>
+  //               </div>
+  //             </div>
+  //             <div style="background:white;border-radius:16px;padding:20px;box-shadow:0 2px 10px rgba(0,0,0,0.06);border-left:6px solid #2563eb;">
+  //               <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
+  //                 <div style="font-size:16px;font-weight:700;color:#0f172a;">RI-7 — Progression Risk Index</div>
+  //                 <span style="padding:6px 12px;border-radius:20px;background:#dc2626;color:#fff;font-size:12px;font-weight:700;">HIGH</span>
+  //               </div>
+  //               <div style="margin-top:14px;font-size:15px;color:#334155;font-weight:600;">Score: 62 / 100</div>
+  //               <div style="height:10px;background:#e2e8f0;border-radius:20px;overflow:hidden;margin-top:16px;">
+  //                 <div style="width:62%;height:100%;background:#2563eb;"></div>
+  //               </div>
+  //             </div>
+  //           </div>
+  //         </div>
+
+  //         <div id="risk-assessment" class="risk-section" style="display:none;">
+  //           <div style="display:flex;flex-direction:column;gap:14px;">
+  //             <div style="background:white;border-radius:16px;padding:20px;box-shadow:0 2px 10px rgba(0,0,0,0.06);">
+  //               <div style="font-size:16px;font-weight:700;color:#0f172a;">Hypertension (HTN)</div>
+  //               <div style="margin-top:8px;font-size:13px;color:#64748b;">Active • Chronic Condition</div>
+  //               <div style="margin-top:16px;border-top:1px solid #e2e8f0;padding-top:14px;">
+  //                 <div style="font-size:13px;font-weight:700;color:#334155;">Evidence</div>
+  //                 <div style="font-size:13px;color:#475569;line-height:1.8;margin-top:6px;">BP 138/78 mmHg; on lisinopril 5 mg + HCTZ 25 mg</div>
+  //                 <div style="font-size:13px;font-weight:700;color:#334155;margin-top:12px;">Rationale</div>
+  //                 <div style="font-size:13px;color:#475569;line-height:1.8;margin-top:6px;">BP at goal with active medication management.</div>
+  //               </div>
+  //             </div>
+  //             <div style="background:white;border-radius:16px;padding:20px;box-shadow:0 2px 10px rgba(0,0,0,0.06);">
+  //               <div style="font-size:16px;font-weight:700;color:#0f172a;">Major Depressive Disorder (MDD)</div>
+  //               <div style="margin-top:8px;font-size:13px;color:#64748b;">Rising • Chronic Condition</div>
+  //               <div style="margin-top:16px;border-top:1px solid #e2e8f0;padding-top:14px;">
+  //                 <div style="font-size:13px;font-weight:700;color:#334155;">Evidence</div>
+  //                 <div style="font-size:13px;color:#475569;line-height:1.8;margin-top:6px;">PHQ-9 score 7; citalopram non-adherence</div>
+  //                 <div style="font-size:13px;font-weight:700;color:#334155;margin-top:12px;">Rationale</div>
+  //                 <div style="font-size:13px;color:#475569;line-height:1.8;margin-top:6px;">Depression worsening risk due to bereavement and smoking relapse.</div>
+  //               </div>
+  //             </div>
+  //           </div>
+  //         </div>
+
+  //         <div id="risk-indicators" class="risk-section" style="display:none;">
+  //           <div style="display:flex;flex-direction:column;gap:14px;">
+  //             <div style="background:white;border-radius:16px;padding:20px;box-shadow:0 2px 10px rgba(0,0,0,0.06);">
+  //               <div style="font-size:16px;font-weight:700;color:#0f172a;">RI-1 — Readmission Risk Index</div>
+  //               <div style="margin-top:8px;font-size:13px;color:#64748b;">Moderate Risk</div>
+  //               <div style="margin-top:16px;border-top:1px solid #e2e8f0;padding-top:14px;">
+  //                 <div style="font-size:13px;font-weight:700;color:#334155;">Evidence</div>
+  //                 <div style="font-size:13px;color:#475569;line-height:1.8;margin-top:6px;">MDD non-adherence, smoking relapse, chronic conditions.</div>
+  //                 <div style="font-size:13px;font-weight:700;color:#334155;margin-top:12px;">Rationale</div>
+  //                 <div style="font-size:13px;color:#475569;line-height:1.8;margin-top:6px;">Moderate instability burden without acute hospitalization.</div>
+  //               </div>
+  //             </div>
+  //           </div>
+  //         </div>
+  //       </div>
+  //     </div>
+  //   `;
+
+  //   chartContent.querySelectorAll('.risk-menu-item').forEach(button => {
+  //     button.addEventListener('click', () => {
+  //       chartContent.querySelectorAll('.risk-menu-item').forEach(btn => {
+  //         btn.style.background = 'white';
+  //         btn.style.color = '#0f172a';
+  //         btn.style.borderColor = '#cbd5e1';
+  //         btn.classList.remove('active');
+  //       });
+  //       button.style.background = '#eff6ff';
+  //       button.style.color = '#0f172a';
+  //       button.style.borderColor = '#2563eb';
+  //       button.classList.add('active');
+
+  //       const target = button.getAttribute('data-target');
+  //       chartContent.querySelectorAll('.risk-section').forEach(section => {
+  //         section.style.display = section.id === target ? 'block' : 'none';
+  //       });
+  //     });
+  //   });
+  // }
+
+  function showMemberRiskProfileContent() {
+    const chartContent = document.getElementById("chartContent");
+    if (!chartContent) return;
+
+    chartContent.innerHTML = `
+  <style>
+
+    .risk-container{
+      padding:12px;
+      background:#f8f9fa;
+      height:100%;
+      overflow:auto;
+    }
+
+    /* TOP TABS */
+
+    .risk-tabs{
+      display:flex;
+      gap:8px;
+      margin-bottom:16px;
+      flex-wrap:wrap;
+    }
+
+    .risk-tab{
+      border:none;
+      background:#ffffff;
+      color:#374151;
+      padding:10px 16px;
+      border-radius:8px;
+      font-size:13px;
+      font-weight:700;
+      cursor:pointer;
+      box-shadow:0 1px 3px rgba(0,0,0,.08);
+    }
+
+    .risk-tab.active{
+      background:#2563eb;
+      color:white;
+    }
+
+    .risk-section{
+      display:none;
+    }
+
+    .risk-section.active{
+      display:block;
+    }
+
+    /* SECTION TITLE */
+
+    .section-title{
+      font-size:18px;
+      font-weight:700;
+      color:#111827;
+      margin-bottom:12px;
+    }
+
+    /* SCORE CARD */
+
+    .score-card{
+      background:#ffffff;
+      border:1px solid #e5e7eb;
+      border-radius:8px;
+      padding:14px;
+      margin-bottom:10px;
+      box-shadow:0 1px 3px rgba(0,0,0,.08);
+    }
+
+    .score-header{
+      display:flex;
+      justify-content:space-between;
+      align-items:flex-start;
+      gap:12px;
+    }
+
+    .score-title{
+      font-size:14px;
+      font-weight:700;
+      color:#111827;
+      margin-bottom:10px;
+    }
+
+    .score-value{
+      font-size:13px;
+      color:#374151;
+      font-weight:600;
+    }
+
+    .risk-badge{
+      padding:5px 10px;
+      border-radius:999px;
+      font-size:11px;
+      font-weight:700;
+      white-space:nowrap;
+    }
+
+    .risk-high{
+      background:#fee2e2;
+      color:#dc2626;
+    }
+
+    .risk-moderate{
+      background:#fef3c7;
+      color:#d97706;
+    }
+
+    .risk-low{
+      background:#dcfce7;
+      color:#16a34a;
+    }
+
+    .progress-track{
+      height:6px;
+      background:#e5e7eb;
+      border-radius:999px;
+      overflow:hidden;
+      margin-top:10px;
+    }
+
+    .progress-fill{
+      height:100%;
+      background:#2563eb;
+    }
+
+    /* ACCORDION */
+
+    .accordion-card{
+      background:#ffffff;
+      border:1px solid #e5e7eb;
+      border-radius:8px;
+      overflow:hidden;
+      margin-bottom:10px;
+      box-shadow:0 1px 3px rgba(0,0,0,.08);
+    }
+
+    .accordion-header{
+      padding:12px;
+      display:flex;
+      justify-content:space-between;
+      align-items:flex-start;
+      cursor:pointer;
+    }
+
+    .accordion-title{
+      font-size:14px;
+      font-weight:700;
+      color:#111827;
+      margin-bottom:4px;
+    }
+
+    .accordion-meta{
+      font-size:12px;
+      color:#6b7280;
+    }
+
+    .accordion-arrow{
+      color:#6b7280;
+      transition:.2s;
+      font-size:14px;
+    }
+
+    .accordion-card.active .accordion-arrow{
+      transform:rotate(180deg);
+    }
+
+    .accordion-content{
+      display:none;
+      padding:12px;
+      border-top:1px solid #f3f4f6;
+    }
+
+    .accordion-card.active .accordion-content{
+      display:block;
+    }
+
+    .content-label{
+      font-size:12px;
+      font-weight:700;
+      color:#374151;
+      margin-top:8px;
+    }
+
+    .content-value{
+      font-size:12px;
+      color:#111827;
+      line-height:1.6;
+      margin-top:4px;
+    }
+
+  </style>
+
+  <div class="risk-container">
+
+    <div class="risk-tabs">
+
+      <button class="risk-tab active" data-target="risk-scores">
+        Clinical Scores
+      </button>
+
+      <button class="risk-tab" data-target="risk-assessment">
+        Clinical Assessment
+      </button>
+
+      <button class="risk-tab" data-target="risk-indicators">
+        Risk Indicators
+      </button>
+
+    </div>
+
+    <!-- SCORES -->
+
+    <div id="risk-scores" class="risk-section active">
+
+      <div class="section-title">
+        Clinical Scores
+      </div>
+
+      <div class="score-card">
+
+        <div class="score-header">
+
+          <div>
+
+            <div class="score-title">
+              RI-6 — Care Gap Urgency Index
+            </div>
+
+            <div class="score-value">
+              Score: 72 / 100
+            </div>
+
+          </div>
+
+          <div class="risk-badge risk-high">
+            HIGH
+          </div>
+
+        </div>
+
+        <div class="progress-track">
+          <div class="progress-fill" style="width:72%"></div>
+        </div>
+
+      </div>
+
+      <div class="score-card">
+
+        <div class="score-header">
+
+          <div>
+
+            <div class="score-title">
+              RI-7 — Progression Risk Index
+            </div>
+
+            <div class="score-value">
+              Score: 62 / 100
+            </div>
+
+          </div>
+
+          <div class="risk-badge risk-high">
+            HIGH
+          </div>
+
+        </div>
+
+        <div class="progress-track">
+          <div class="progress-fill" style="width:62%"></div>
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- CLINICAL ASSESSMENT -->
+
+    <div id="risk-assessment" class="risk-section">
+
+      <div class="section-title">
+        Clinical Assessment
+      </div>
+
+      <div class="accordion-card">
+
+        <div class="accordion-header">
+
+          <div>
+
+            <div class="accordion-title">
+              Hypertension (HTN)
+            </div>
+
+            <div class="accordion-meta">
+              Active • Chronic Condition
+            </div>
+
+          </div>
+
+          <div class="accordion-arrow">
+            ▼
+          </div>
+
+        </div>
+
+        <div class="accordion-content">
+
+          <div class="content-label">
+            Evidence
+          </div>
+
+          <div class="content-value">
+            BP 138/78 mmHg; on lisinopril 5 mg + HCTZ 25 mg
+          </div>
+
+          <div class="content-label">
+            Rationale
+          </div>
+
+          <div class="content-value">
+            BP at goal with active medication management.
+          </div>
+
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- RISK INDICATORS -->
+
+    <div id="risk-indicators" class="risk-section">
+
+      <div class="section-title">
+        Risk Indicators
+      </div>
+
+      <div class="accordion-card">
+
+        <div class="accordion-header">
+
+          <div>
+
+            <div class="accordion-title">
+              RI-1 — Readmission Risk Index
+            </div>
+
+            <div class="accordion-meta">
+              Moderate Risk
+            </div>
+
+          </div>
+
+          <div class="accordion-arrow">
+            ▼
+          </div>
+
+        </div>
+
+        <div class="accordion-content">
+
+          <div class="content-label">
+            Evidence
+          </div>
+
+          <div class="content-value">
+            MDD non-adherence, smoking relapse, chronic conditions.
+          </div>
+
+          <div class="content-label">
+            Rationale
+          </div>
+
+          <div class="content-value">
+            Moderate instability burden without acute hospitalization.
+          </div>
+
+        </div>
+
+      </div>
+
+    </div>
+
+  </div>
+  `;
+
+    chartContent.querySelectorAll(".risk-tab").forEach(tab => {
+      tab.addEventListener("click", () => {
+
+        chartContent
+          .querySelectorAll(".risk-tab")
+          .forEach(btn => btn.classList.remove("active"));
+
+        tab.classList.add("active");
+
+        const target = tab.dataset.target;
+
+        chartContent
+          .querySelectorAll(".risk-section")
+          .forEach(section => {
+            section.classList.remove("active");
+          });
+
+        chartContent
+          .querySelector("#" + target)
+          .classList.add("active");
+      });
+    });
+
+    chartContent.querySelectorAll(".accordion-header").forEach(header => {
+
+      header.addEventListener("click", () => {
+        header.parentElement.classList.toggle("active");
+      });
+
+    });
+  }
 
   // Create floating buttons
   function createFloatingButtons() {
@@ -1769,14 +2925,237 @@
             <line x1="6" y1="19" x2="18" y2="19" stroke="#D1D5DB" stroke-width="1" stroke-linecap="round"/>
         </svg>
       </button>
+      <button class="floating-icon-btn member-risk-btn" id="memberRiskBtn" data-tooltip="Member Risk Profile" aria-label="Member Risk Profile">
+        <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none">
+          <defs>
+            <linearGradient id="riskGradient" x1="0" y1="0" x2="24" y2="24" gradientUnits="userSpaceOnUse">
+              <stop offset="0%" stop-color="#8B5CF6"/>
+              <stop offset="100%" stop-color="#6366F1"/>
+            </linearGradient>
+          </defs>
+          <rect x="4" y="4" width="16" height="16" rx="3" fill="white" stroke="url(#riskGradient)" stroke-width="2"/>
+          <path d="M7 14l3-3 2 2 4-4" stroke="url(#riskGradient)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+          <circle cx="8.5" cy="10.5" r="1.5" fill="#8B5CF6"/>
+          <circle cx="12" cy="7.5" r="1.5" fill="#6366F1"/>
+          <circle cx="15.5" cy="12" r="1.5" fill="#8B5CF6"/>
+        </svg>
+      </button>
+      <button class="floating-icon-btn notes-btn" id="doc_quality" data-tooltip="DQA Details" aria-label="DQA Details">
+        <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none">
 
+          <!-- Background -->
+          <rect x="4" y="3" width="16" height="18" rx="2"
+                fill="white"
+                stroke="#7C3AED"
+                stroke-width="2"/>
+
+          <!-- Lines -->
+          <line x1="7" y1="8" x2="17" y2="8"
+                stroke="#7C3AED"
+                stroke-width="1.8"
+                stroke-linecap="round"/>
+
+          <line x1="7" y1="12" x2="17" y2="12"
+                stroke="#7C3AED"
+                stroke-width="1.8"
+                stroke-linecap="round"/>
+
+          <line x1="7" y1="16" x2="14" y2="16"
+                stroke="#7C3AED"
+                stroke-width="1.8"
+                stroke-linecap="round"/>
+        </svg>
+      </button>
     `;
 
     document.body.appendChild(buttonsDiv);
 
     // Add event listeners
     // wire up chart button click below
+    // DQA button click handler
+    document.getElementById('doc_quality').addEventListener('click', async () => {
 
+      const isAlreadyOnDQA =
+        contentType === 'dqa' &&
+        document.getElementById('doc_quality').classList.contains('active');
+
+      showPanel('dqa');
+
+      const chartContent =
+        document.getElementById('chartContent');
+
+      // Refresh existing view
+      if (isAlreadyOnDQA) {
+
+        if (chartContent) {
+          chartContent.innerHTML = `
+        <div style="padding:20px">
+          Refreshing DQA details...
+        </div>
+      `;
+        }
+
+        try {
+
+          const response =
+            await chrome.runtime.sendMessage({
+              action: 'fetchDqaDetails',
+              payload: {
+                member_id: currentMemberId,
+                member_name: currentMemberName
+              }
+            });
+
+          if (response.error) {
+            throw new Error(response.error);
+          }
+
+          const apiData =
+            response?.data?.data?.details || [];
+
+          // ✅ MAP API RESPONSE
+          dqaData = apiData.map(item => ({
+
+            id: item.id,
+
+            Condition: item.cn || '',
+
+            "ICD-10": item.rc || '',
+
+            encounter_documented: item.enc_doc || '',
+
+            meat_present: item.me_p || '',
+
+            meat_absent: item.me_a || '',
+
+            supporting_clinical_evidence: item.sce || '',
+
+            education_priority: item.ep || '',
+
+            documentation_strength: item.ds || '',
+
+            comment: item.an_cm || '',
+
+            hcc: item.hcc || '',
+
+            rx_hcc: item.rx || ''
+
+          }));
+
+          showDQAContent();
+
+          const patientEl =
+            document.getElementById('patientNameDisplay');
+
+          if (patientEl) {
+            patientEl.textContent =
+              currentMemberName || 'N/A';
+          }
+
+        } catch (err) {
+
+          console.error(err);
+
+          chartContent.innerHTML = `
+        <div style="padding:20px;color:#c00">
+          Failed to load DQA details:
+          ${err.message}
+        </div>
+      `;
+        }
+
+        return;
+      }
+
+      // Cached data
+      if (dqaData.length > 0) {
+
+        showDQAContent();
+
+        const patientEl =
+          document.getElementById('patientNameDisplay');
+
+        if (patientEl) {
+          patientEl.textContent =
+            currentMemberName || 'N/A';
+        }
+
+        return;
+      }
+
+      // Initial load
+      chartContent.innerHTML = `
+    <div style="padding:20px">
+      Loading DQA details...
+    </div>
+  `;
+
+      try {
+
+        const response =
+          await chrome.runtime.sendMessage({
+            action: 'fetchDqaDetails',
+            payload: {
+              member_id: currentMemberId,
+              member_name: currentMemberName
+            }
+          });
+
+        if (response.error) {
+          throw new Error(response.error);
+        }
+
+        const apiData =
+          response?.data?.data?.details || [];
+
+        // ✅ MAP API RESPONSE
+        dqaData = apiData.map(item => ({
+
+          id: item.id,
+
+          Condition: item.cn || '',
+
+          "ICD-10": item.rc || '',
+
+          encounter_documented: item.enc_doc || '',
+
+          meat_present: item.me_p || '',
+
+          meat_absent: item.me_a || '',
+
+          supporting_clinical_evidence: item.sce || '',
+
+          education_priority: item.ep || '',
+
+          documentation_strength: item.ds || '',
+
+          comment: item.an_cm || ''
+
+        }));
+
+        showDQAContent();
+
+        const patientEl =
+          document.getElementById('patientNameDisplay');
+
+        if (patientEl) {
+          patientEl.textContent =
+            currentMemberName || 'N/A';
+        }
+
+      } catch (err) {
+
+        console.error(err);
+
+        chartContent.innerHTML = `
+      <div style="padding:20px;color:#c00">
+        Failed to load DQA details:
+        ${err.message}
+      </div>
+    `;
+      }
+
+    });
     document.getElementById('chartBtn').addEventListener('click', async () => {
       // Check if we're already on chart view and user wants to refresh
       const isAlreadyOnChart = contentType === 'chart' && document.getElementById('chartBtn').classList.contains('active');
@@ -2004,6 +3383,18 @@
       }
     });
 
+    document.getElementById('memberRiskBtn').addEventListener('click', () => {
+      const isAlreadyOnMemberRisk = contentType === 'memberRisk' && document.getElementById('memberRiskBtn').classList.contains('active');
+      showPanel('memberRisk');
+      if (isAlreadyOnMemberRisk) {
+        const chartContent = document.getElementById('chartContent');
+        if (chartContent) chartContent.innerHTML = `<div style="padding:20px">Loading Member Risk Profile...</div>`;
+        showMemberRiskProfileContent();
+        return;
+      }
+      showMemberRiskProfileContent();
+    });
+
     return buttonsDiv;
   }
 
@@ -2104,6 +3495,7 @@
     const chartBtn = document.getElementById('chartBtn');
     const conditionAuditBtn = document.getElementById('conditionAuditBtn');
     const mrAnalysisBtn = document.getElementById('mrAnalysisBtn');
+    const memberRiskBtn = document.getElementById('memberRiskBtn');
 
     if (!div || !backdrop || !floatingButtons) return;
 
@@ -2135,6 +3527,10 @@
         conditionAuditBtn.classList.remove('active');
         conditionAuditBtn.setAttribute('data-tooltip', 'Audit Details');
       }
+      if (memberRiskBtn) {
+        memberRiskBtn.classList.remove('active');
+        memberRiskBtn.setAttribute('data-tooltip', 'Member Risk Profile');
+      }
       if (chartBtn) chartBtn.setAttribute('data-tooltip', 'HCC Analysis');
       // Keep title static and show loading state in the bracketed count while data fetches
       const titleEl = document.getElementById('chartTitle');
@@ -2164,6 +3560,10 @@
       if (mrAnalysisBtn) {
         mrAnalysisBtn.classList.remove('active');
         mrAnalysisBtn.setAttribute('data-tooltip', 'MR Details'); // this id changed
+      }
+      if (memberRiskBtn) {
+        memberRiskBtn.classList.remove('active');
+        memberRiskBtn.setAttribute('data-tooltip', 'Member Risk Profile');
       }
       if (chartBtn) chartBtn.setAttribute('data-tooltip', 'Chart Details');
       document.getElementById('chartTitle').textContent = 'Audit Details';
@@ -2205,6 +3605,10 @@
         conditionAuditBtn.classList.remove('active');
         conditionAuditBtn.setAttribute('data-tooltip', 'Audit Details');
       }
+      if (memberRiskBtn) {
+        memberRiskBtn.classList.remove('active');
+        memberRiskBtn.setAttribute('data-tooltip', 'Member Risk Profile');
+      }
       document.getElementById('chartTitle').textContent = 'Medical Record Analysis';
       const subEl = document.getElementById('chartSubTitle');
       if (subEl) subEl.textContent = '';
@@ -2235,6 +3639,121 @@
         console.warn('Failed to toggle status header visibility for MR Analysis', e);
       }
       showMRAnalysisContent();
+    } else if (type === 'memberRisk') {
+      if (memberRiskBtn) {
+        memberRiskBtn.classList.add('active');
+        memberRiskBtn.setAttribute('data-tooltip', 'Member Risk Profile');
+      }
+      if (chartBtn) {
+        chartBtn.classList.remove('active');
+        chartBtn.setAttribute('data-tooltip', 'Chart Details');
+      }
+      if (conditionAuditBtn) {
+        conditionAuditBtn.classList.remove('active');
+        conditionAuditBtn.setAttribute('data-tooltip', 'Audit Details');
+      }
+      if (mrAnalysisBtn) {
+        mrAnalysisBtn.classList.remove('active');
+        mrAnalysisBtn.setAttribute('data-tooltip', 'MR Details');
+      }
+      const dqaBtn = document.getElementById('doc_quality');
+      if (dqaBtn) {
+        dqaBtn.classList.remove('active');
+        dqaBtn.setAttribute('data-tooltip', 'Notes');
+      }
+      document.getElementById('chartTitle').textContent = 'Member Risk Profile';
+      const subEl = document.getElementById('chartSubTitle');
+      if (subEl) subEl.textContent = '';
+      const reviewStatusEl = document.getElementById('reviewStatusHeader');
+      const auditStatusEl = document.getElementById('auditReviewStatusHeader');
+      if (reviewStatusEl) reviewStatusEl.style.display = 'none';
+      if (auditStatusEl) auditStatusEl.style.display = 'none';
+      const chartResultsEl = document.getElementById('chartResultsCount');
+      const auditResultsEl = document.getElementById('auditResultsCount');
+      if (chartResultsEl) {
+        chartResultsEl.style.display = '';
+        chartResultsEl.innerHTML = currentDos ? `<strong>DOS: ${currentDos}</strong>` : '';
+      }
+      if (auditResultsEl) auditResultsEl.style.display = 'none';
+      showMemberRiskProfileContent();
+    } else if (type === 'dqa') {
+
+      const dqaBtn = document.getElementById('doc_quality');
+
+      if (dqaBtn) {
+        dqaBtn.classList.add('active');
+        dqaBtn.setAttribute('data-tooltip', 'DQA Details');
+      }
+
+      if (chartBtn) {
+        chartBtn.classList.remove('active');
+        chartBtn.setAttribute('data-tooltip', 'Chart Details');
+      }
+
+      if (conditionAuditBtn) {
+        conditionAuditBtn.classList.remove('active');
+        conditionAuditBtn.setAttribute('data-tooltip', 'Audit Details');
+      }
+
+      if (mrAnalysisBtn) {
+        mrAnalysisBtn.classList.remove('active');
+        mrAnalysisBtn.setAttribute('data-tooltip', 'MR Details');
+      }
+
+      if (memberRiskBtn) {
+        memberRiskBtn.classList.remove('active');
+        memberRiskBtn.setAttribute('data-tooltip', 'Member Risk Profile');
+      }
+
+      document.getElementById('chartTitle').textContent = 'Documentation Quality Analysis';
+
+      const subEl = document.getElementById('chartSubTitle');
+      if (subEl) subEl.textContent = '';
+
+      // show chart-style header
+      const reviewStatusEl = document.getElementById('reviewStatusHeader');
+      const auditStatusEl = document.getElementById('auditReviewStatusHeader');
+
+      // if (reviewStatusEl) {
+      //   reviewStatusEl.style.display = '';
+      //   reviewStatusEl.textContent = 'DQA Review';
+      //   reviewStatusEl.style.color = '#7C3AED';
+      // }
+      if (reviewStatusEl) {
+
+        reviewStatusEl.style.display = '';
+
+        let dqaHeader = 'Documentation Quality Analysis';
+
+        console.log('DQA Meta:', dqaMeta);
+
+        if (dqaMeta?.sts === 1) {
+          dqaHeader = 'Under DQA Charts';
+        }
+        else if (dqaMeta?.sts === 2 || dqaMeta?.sts === 3) {
+          dqaHeader = 'Under Reviewed Charts';
+        }
+
+        reviewStatusEl.textContent = dqaHeader;
+        reviewStatusEl.style.color = '#7C3AED';
+      }
+      if (auditStatusEl) {
+        auditStatusEl.style.display = 'none';
+      }
+
+      const chartResultsEl = document.getElementById('chartResultsCount');
+      const auditResultsEl = document.getElementById('auditResultsCount');
+
+      if (chartResultsEl) {
+        chartResultsEl.style.display = '';
+        chartResultsEl.innerHTML = `<strong>${dqaData.length} Records</strong>`;
+      }
+
+      if (auditResultsEl) {
+        auditResultsEl.style.display = 'none';
+      }
+
+      showDQAContent();
     }
   }
 
@@ -2646,7 +4165,7 @@
               <button aria-label="add-note" class="note-button" tabindex="0">
                 <!-- left icon -->
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="note-icon" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
-                <span class="note-text">Notes</span>
+                <span class="note-text">DQA Details</span>
               </button>
             </span>
             <span class="value" style="display:block;transform: translateY(10px);">${condition.noteText || ' '}</span>
@@ -3451,6 +4970,39 @@
     return escapeHtml(text).replace(/&lt;br&gt;/g, '<br>').replace(/&lt;strong&gt;(.*?)&lt;\/strong&gt;/g, '<strong>$1</strong>');
   }
 
+  function fetchDqaDetailsFromServiceWorker(memberId, memberName) {
+    return new Promise((resolve, reject) => {
+
+      chrome.runtime.sendMessage(
+        {
+          action: "fetchDqaDetails",
+          payload: {
+            member_id: memberId,
+            member_name: memberName
+          }
+        },
+        (response) => {
+
+          if (chrome.runtime.lastError) {
+            reject(new Error(chrome.runtime.lastError.message));
+            return;
+          }
+
+          if (!response) {
+            reject(new Error("No response from service worker"));
+            return;
+          }
+
+          if (response.error) {
+            reject(new Error(response.error));
+            return;
+          }
+
+          resolve(response.data);
+        }
+      );
+    });
+  }
 
   // 🧩 Detect patient info and trigger automatically (non-blocking)
   async function tryAutoLoad() {
@@ -3497,12 +5049,26 @@
 
     try {
       // Call all APIs in parallel to pre-load data
-      const [chartResponse, auditResponse, mrAnalysisResponse] = await Promise.allSettled([
+      // const [chartResponse, auditResponse, mrAnalysisResponse] = await Promise.allSettled([
+      //   fetchChartDetailsFromServiceWorker(chartNumber, patientName),
+      //   fetchAuditDetailsFromServiceWorker(chartNumber, patientName),
+      //   fetchMRAnalysisFromServiceWorker(chartNumber, patientName)
+      // ]);
+      const [
+        chartResponse,
+        auditResponse,
+        mrAnalysisResponse,
+        dqaResponse
+      ] = await Promise.allSettled([
         fetchChartDetailsFromServiceWorker(chartNumber, patientName),
         fetchAuditDetailsFromServiceWorker(chartNumber, patientName),
-        fetchMRAnalysisFromServiceWorker(chartNumber, patientName)
+        fetchMRAnalysisFromServiceWorker(chartNumber, patientName),
+        fetchDqaDetailsFromServiceWorker(chartNumber, patientName)
       ]);
-
+      console.log("chartResponse", chartResponse);
+      console.log("auditResponse", auditResponse);
+      console.log("mrAnalysisResponse", mrAnalysisResponse);
+      console.log("dqaResponse", dqaResponse);
       // Process chart details response
       if (chartResponse.status === 'fulfilled') {
         console.log('✅ Chart details pre-loaded successfully');
@@ -3561,8 +5127,8 @@
           } else if (apiData && apiData.analyst_name) {
             analystName = String(apiData.analyst_name).trim();
           }
-          console.log("the status is :"+statusNum)
-          console.log("the analyst name is :"+analystName)
+          console.log("the status is :" + statusNum)
+          console.log("the analyst name is :" + analystName)
           let statusText = '';
           let statusColor = '#666';
           if (statusNum === 7 || statusNum === 8 || statusNum === 9 || statusNum === 10) {
@@ -3694,19 +5260,96 @@
       }
 
       console.log('🎉 Data pre-loading completed');
+      // Process DQA response
+      if (dqaResponse.status === 'fulfilled') {
 
+        console.log('✅ DQA details pre-loaded successfully');
+
+        const apiData = dqaResponse.value;
+
+        const details =
+          apiData &&
+            apiData.data &&
+            Array.isArray(apiData.data.details)
+            ? apiData.data.details
+            : [];
+
+        dqaMeta = {
+          sts: apiData?.data?.sts || null,
+          doc_sc: apiData?.data?.doc_sc || null,
+          did: apiData?.data?.did || null
+        };
+
+        // dqaData = details.map((item, index) => ({
+
+        //   id: item.id || index,
+
+        //   Condition: item.cn || '',
+
+        //   ICD10: item.rc || '',
+
+        //   encounterDates: item.enc_doc || '',
+
+        //   meatPresent: item.me_p || '',
+
+        //   meatAbsent: item.me_a || '',
+
+        //   supportingEvidence: item.sce || '',
+
+        //   educationPriority: item.ep || '',
+
+        //   documentationStrength: item.ds || ''
+
+        // }));
+        dqaData = details.map((item, index) => ({
+
+          id: item.id || index,
+
+          Condition: item.cn || '',
+
+          "ICD-10": item.rc || '',
+
+          encounter_documented: item.enc_doc || '',
+
+          meat_present: item.me_p || '',
+
+          meat_absent: item.me_a || '',
+
+          supporting_clinical_evidence: item.sce || '',
+
+          education_priority: item.ep || '',
+
+          documentation_strength: item.ds || '',
+
+          comment: item.an_cm || '',
+          hcc: item.hcc || '',
+
+          rx_hcc: item.rx || ''
+
+        }));
+        console.log(dqaData)
+
+        console.log('📝 DQA mapped rows:', dqaData.length);
+
+      } else {
+
+        console.warn(
+          '⚠️ DQA preload failed:',
+          dqaResponse.reason
+        );
+      }
       // Apply cached statuses to panel if it was created before preload data arrived
       setTimeout(() => {
         try {
           const chartStatusEl = document.getElementById('reviewStatusHeader');
           const auditStatusEl = document.getElementById('auditReviewStatusHeader');
-          
+
           if (chartStatusEl && currentChartStatusText) {
             console.log('✏️ Applying cached chart status to panel:', currentChartStatusText);
             chartStatusEl.textContent = currentChartStatusText;
             chartStatusEl.style.color = currentChartStatusColor || '#666';
           }
-          
+
           if (auditStatusEl && currentAuditStatusText) {
             console.log('✏️ Applying cached audit status to panel:', currentAuditStatusText);
             auditStatusEl.textContent = currentAuditStatusText;
