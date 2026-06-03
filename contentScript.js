@@ -116,6 +116,7 @@
   padding: 8px !important;
   background: #ffffff !important;
   border-bottom: 1px solid #e5e7eb !important;
+  width: 100%;
 }
 
 .dqa-filter-btn {
@@ -351,70 +352,179 @@
     console.log("filtered data:", filteredData)
     const cardsHtml = filteredData.map((row, i) => {
 
-      const rowId =
-        String(row.id || i);
-
-      const isExpanded =
-        window.expandedDQARows.has(rowId);
+      const rowId = String(row.id || i);
 
       const icdCode =
         row["ICD-10"] || '';
+
+      const encounterDates =
+        row.encounter_documented || '';
+
+      const meatPresent =
+        row.meat_present || '';
+
+      const meatAbsent =
+        row.meat_absent || '';
+
+      const supportingEvidence =
+        row.supporting_clinical_evidence || '';
 
       const statusValue =
         (row.documentation_strength || '')
           .trim()
           .toUpperCase();
 
-      let statusInfo =
-        STATUS_OPTIONS.find(
-          opt => opt.value === statusValue
-        );
-
-      if (!statusInfo) {
-
-        statusInfo = {
-          label: statusValue || 'Unknown',
-          class: 'status-query-required'
-        };
-      }
 
       return `
-      <div class="audit-card ${isExpanded ? 'expanded' : ''}" data-row-id="${rowId}">
 
-        <div class="audit-card-header">
+    <div class="dqa-condition-card">
 
-          <div class="audit-card-info">
+      <!-- Badges Row -->
+      <div class="dqa-card-badges-row">
 
-            <div class="audit-condition-name">
-              ${escapeHtml(row.Condition || '')}
-            </div>
+        <div class="dqa-badge-group">
 
-            <div class="audit-codes-row">   
-
-            </div>
-
-          </div>
-          
-
-        </div>
-
-        ${isExpanded
-          ? renderExpandedDqaDetails(row)
+          ${row.hcc
+          ? `
+                <span class="hcc-badge">
+                  HCC
+                </span>
+              `
           : ''
         }
 
+          ${row.rx_hcc
+          ? `
+                <span class="rx-hcc-badge">
+                  Rx-HCC
+                </span>
+              `
+          : ''
+        }
+
+        </div>
+
       </div>
-    `;
+
+      <!-- Condition -->
+      <h5 class="dqa-card-title">
+        ${escapeHtml(row.Condition || '')}
+      </h5>
+
+      <!-- Encounter Date -->
+      ${encounterDates
+          ? `
+      <div style="margin-bottom:10px;">
+        <span style="
+          display:inline-flex;
+          align-items:center;
+          gap:4px;
+          padding:4px 8px;
+          color:black;
+          font-size:11px;
+          font-weight:600;
+        ">
+          📅 ${escapeHtml(encounterDates)}
+        </span>
+      </div>
+    `
+          : ''
+        }
+
+      ${meatPresent
+          ? `
+    <div class="dqa-info-row dqa-indicators-row">
+      <span class="label" style="
+  color:#16a34a;
+  font-size:16px;
+  line-height:1;
+">
+  ✅
+</span>
+
+      <span class="value">
+        ${escapeHtml(meatPresent)}
+      </span>
+    </div>
+  `
+          : ''
+        }
+
+${meatAbsent
+          ? `
+    <div class="dqa-info-row dqa-indicators-row" style="margin-top:8px;">
+      <span class="label" style="
+  color:#dc2626;
+  font-size:16px;
+  line-height:1;
+">
+  ❌
+</span>
+
+      <span class="value">
+        ${escapeHtml(meatAbsent)}
+      </span>
+    </div>
+  `
+          : ''
+        }
+
+      <!-- Supporting Evidence -->
+      ${supportingEvidence
+          ? `
+            <div class="dqa-info-row dqa-evidence-row">
+
+              <span class="label">
+
+                 <svg xmlns="http://www.w3.org/2000/svg"
+             width="18"
+             height="18"
+             viewBox="0 0 24 24"
+             fill="none"
+             stroke="currentColor"
+             stroke-width="2"
+             stroke-linecap="round"
+             stroke-linejoin="round"
+             class="lucide lucide-flask-conical">
+
+          <path d="M14 2v6a2 2 0 0 0 .245.96l5.51 10.08A2 2 0 0 1 18 22H6a2 2 0 0 1-1.755-2.96l5.51-10.08A2 2 0 0 0 10 8V2"></path>
+          <path d="M6.453 15h11.094"></path>
+          <path d="M8.5 2h7"></path>
+
+        </svg>
+
+              </span>
+
+              <span class="value">
+                ${escapeHtml(supportingEvidence)}
+              </span>
+
+            </div>
+          `
+          : ''
+        }
+
+    </div>
+
+  `;
 
     }).join('');
 
     chartContent.innerHTML = `
+    <div style="
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:16px;
+  margin-bottom:12px;
+  flex-wrap:wrap;
+">
      <div class="dqa-filter-tabs">
 
-    <button
-      class="dqa-filter-btn ${window.dqaStrengthFilter === 'STRONG' ? 'active' : ''}"
-      data-filter="STRONG">
-      Strong
+     <button
+      class="dqa-filter-btn ${window.dqaStrengthFilter === 'WEAK' ? 'active' : ''}"
+      data-filter="WEAK">
+      Weak
     </button>
 
     <button
@@ -424,30 +534,83 @@
     </button>
 
     <button
-      class="dqa-filter-btn ${window.dqaStrengthFilter === 'WEAK' ? 'active' : ''}"
-      data-filter="WEAK">
-      Weak
+      class="dqa-filter-btn ${window.dqaStrengthFilter === 'STRONG' ? 'active' : ''}"
+      data-filter="STRONG">
+      Strong
     </button>
+ <!-- Legend -->
+  <div style="
+    display:flex;
+    align-items:center;
+    gap:8px;
+    font-size:9px;
+    font-weight:600;
+    color:#64748b;
+    flex-wrap:wrap;
+    transform: translate(84px, 11px);
+  ">
+
+    <span style="display:flex;align-items:center;gap:4px;">
+      📅 Encounter Dates
+    </span>
+
+    <span style="
+      display:flex;
+      align-items:center;
+      gap:4px;
+      color:#16a34a;
+    ">
+      ✅ MEAT Present
+    </span>
+
+    <span style="
+      display:flex;
+      align-items:center;
+      gap:4px;
+      color:#dc2626;
+    ">
+      ❌ MEAT Absent
+    </span>
+
+    <span style="display:flex;align-items:center;gap:4px;">
+
+                 <svg xmlns="http://www.w3.org/2000/svg"
+             width="14"
+             height="14"
+             viewBox="0 0 24 24"
+             fill="none"
+             stroke="currentColor"
+             stroke-width="2"
+             stroke-linecap="round"
+             stroke-linejoin="round"
+             class="lucide lucide-flask-conical">
+
+          <path d="M14 2v6a2 2 0 0 0 .245.96l5.51 10.08A2 2 0 0 1 18 22H6a2 2 0 0 1-1.755-2.96l5.51-10.08A2 2 0 0 0 10 8V2"></path>
+          <path d="M6.453 15h11.094"></path>
+          <path d="M8.5 2h7"></path>
+
+        </svg>
+
+            Supporting Evidence
+    </span>
 
   </div>
-    <div class="audit-accordion-container">
 
-      ${filteredData.length === 0
-        ? `
-          <div style="
-            text-align:center;
-            padding:40px 20px;
-            font-size:14px;
-            color:#6c757d;
-            font-style:italic;
-          ">
-            No DQA records found
-          </div>
-        `
-        : cardsHtml
-      }
-
+</div>
+  </div>
+    <div class="dqa-conditions-scroll">
+  ${filteredData.length === 0 ? `
+    <div style="
+      text-align:center;
+      padding:40px 20px;
+      font-size:14px;
+      color:#6c757d;
+      font-style:italic;
+    ">
+      No DQA records found
     </div>
+  ` : cardsHtml}
+</div>
   `;
 
     const filterButtons =
@@ -463,31 +626,6 @@
 
         window.dqaStrengthFilter =
           btn.dataset.filter;
-
-        showDQAContent();
-
-      });
-
-    });
-
-    const headers =
-      chartContent.querySelectorAll('.audit-card-header');
-
-    headers.forEach(header => {
-
-      header.addEventListener('click', () => {
-
-        const card =
-          header.closest('.audit-card');
-
-        const rowId =
-          card.getAttribute('data-row-id');
-
-        if (window.expandedDQARows.has(rowId)) {
-          window.expandedDQARows.delete(rowId);
-        } else {
-          window.expandedDQARows.add(rowId);
-        }
 
         showDQAContent();
 
@@ -732,6 +870,11 @@
 
       * {
       font-family: 'Poppins', sans-serif !important;
+      }
+
+      #conditionAuditBtn,
+      #mrAnalysisBtn {
+        display: none;
       }
 
        /* Rectangular Floating Button Container */
@@ -1128,6 +1271,18 @@
         align-content: start !important;
       }
 
+      .dqa-conditions-scroll {
+        flex: 1 !important;
+        overflow-y: auto !important;
+        padding: 15px !important;
+        display: grid !important;
+        grid-template-columns: 1fr !important;
+        gap: 15px !important;
+        min-height: 0 !important;
+        height: 100% !important;
+        align-content: start !important;
+      }
+
       /* Scroll container specifically for audit cards so scrollbar appears and size is bounded */
       .audit-cards-scroll {
         max-height: calc(100vh - 160px) !important; /* leaves room for header/search */
@@ -1167,6 +1322,8 @@
          border-radius: 4px !important;
        }
 
+       
+
        .medical-conditions-scroll::-webkit-scrollbar-thumb:hover {
          background: #555 !important;
        }
@@ -1180,6 +1337,38 @@
          min-height: 400px !important;
        }
 
+
+
+
+       dqa
+
+        .dqa-conditions-scroll::-webkit-scrollbar {
+         width: 8px !important;
+       }
+
+       .dqa-conditions-scroll::-webkit-scrollbar-track {
+         background: #f1f1f1 !important;
+       }
+
+       .dqa-conditions-scroll::-webkit-scrollbar-thumb {
+         background: #888 !important;
+         border-radius: 4px !important;
+       }
+
+       
+
+       .dqa-conditions-scroll::-webkit-scrollbar-thumb:hover {
+         background: #555 !important;
+       }
+
+       /* Force scrollbar to always show */
+       .dqa-conditions-scroll {
+         scrollbar-width: thin !important;
+         scrollbar-color: #888 #f1f1f1 !important;
+         overflow-y: auto !important;
+         max-height: calc(100vh - 100px) !important;
+         min-height: 400px !important;
+       }
       /* Beautiful Medical Condition Card Design */
       .medical-condition-card {
         background: #ffffff !important;
@@ -1197,6 +1386,22 @@
         transform: translateY(-1px) !important;
       }
 
+      .dqa-condition-card {
+        background: #ffffff !important;
+        border: 1px solid #e8e8e8 !important;
+        border-left: 4px solid #1e40af !important;
+        border-radius: 4px !important;
+        padding: 5px !important;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06) !important;
+        height: fit-content !important;
+        transition: all 0.3s ease !important;
+      }
+
+      .dqa-condition-card:hover {
+        box-shadow: 0 3px 12px rgba(0, 0, 0, 0.1) !important;
+        transform: translateY(-1px) !important;
+      }
+
        /* Badges Row */
        .card-badges-row {
          margin-bottom: 10px !important;
@@ -1204,7 +1409,21 @@
          justify-content: space-between !important;
        }
 
+       .dqa-card-badges-row {
+         margin-bottom: 10px !important;
+         display: flex !important;
+         justify-content: flex-end !important;
+       }
+
+
        .badge-group {
+         display: flex !important;
+         flex-wrap: wrap !important;
+         gap: 6px !important;
+         align-items: center !important;
+       }
+
+       .dqa-badge-group {
          display: flex !important;
          flex-wrap: wrap !important;
          gap: 6px !important;
@@ -1292,6 +1511,14 @@
         line-height: 1.3 !important;
       }
 
+      .dqa-card-title {
+        font-size: 13px !important;
+        font-weight: 700 !important;
+        color: #111827 !important;
+        margin: 0 0 10px 0 !important;
+        line-height: 1.3 !important;
+      }
+
       /* Card Description Paragraph */
       .card-description {
         font-size: 11px !important;
@@ -1309,6 +1536,15 @@
         font-size: 11px !important;
         color: #374151 !important;
       }
+      
+      .dqa-info-row {
+        display: flex !important;
+        align-items: flex-start !important;
+        gap: 8px !important;
+        padding: 6px 0 !important;
+        font-size: 11px !important;
+        color: #374151 !important;
+      }
 
       /* Special styling for the Clinical Indicators row */
       .card-info-row.indicators-row {
@@ -1318,7 +1554,15 @@
         gap: 10px !important;
         border-radius: 6px !important;
       }
-      .card-info-row.indicators-row .label {
+
+      .dqa-info-row.dqa-indicators-row {
+        background: #ecfdf5 !important; /* light green */
+        border: 0.5px solid #81c791ff !important; /* darker green border */
+        padding: 8px 10px !important;
+        gap: 10px !important;
+        border-radius: 6px !important;
+      }
+      .dqa-info-row dqa-indicators-row .label {
         color: #111111ff !important;
         font-weight: 600 !important;
       }
@@ -1332,6 +1576,19 @@
         margin-top: 8px !important; /* small gap between indicators and this row */
       }
       .card-info-row.code-explanation-row .label {
+        color: #92400e !important; /* darker orange for label */
+        font-weight: 600 !important;
+      }
+
+      .dqa-info-row.dqa-evidence-row {
+        background: #fff7ed !important; /* very light orange */
+        border: 0.5px solid rgba(249, 115, 22, 0.35) !important; /* subtle medium-light orange */
+        padding: 8px 10px !important;
+        gap: 10px !important;
+        border-radius: 6px !important;
+        margin-top: 8px !important; /* small gap between indicators and this row */
+      }
+      .dqa-info-row.dqa-evidence-row .label {
         color: #92400e !important; /* darker orange for label */
         font-weight: 600 !important;
       }
@@ -1844,6 +2101,8 @@
           grid-template-columns: 1fr !important;
         }
 
+
+
         .card-info-row {
           flex-direction: column !important;
           gap: 4px !important;
@@ -2100,7 +2359,8 @@
     const titleMap = {
       chart: 'Chart Details',
       conditionAudit: 'Audit Details',
-      mrAnalysis: 'MR Details'
+      mrAnalysis: 'MR Details',
+      dqa: 'DQA Details'
     };
     const title = titleMap[area] || 'Data';
     if (chartContent) {
@@ -2117,6 +2377,11 @@
     if (area === 'chart') {
       const countEl = document.getElementById('chartCount');
       if (countEl) countEl.textContent = `[ 0 ]`;
+    }
+
+    if (area === 'dqa') {
+      const countEl = document.getElementById('chartCount');
+      if (countEl) countEl.textContent = '[ 0 ]';
     }
     if (patientEl) patientEl.textContent = currentMemberName || 'N/A';
   }
@@ -2841,7 +3106,7 @@
     buttonsDiv.className = 'floating-buttons';
 
     buttonsDiv.innerHTML = `
-      <button class="floating-icon-btn condition-audit-btn" id="conditionAuditBtn" data-tooltip="Audit Findings" aria-label="Audit Details">
+      <button class="floating-icon-btn condition-audit-btn" id="conditionAuditBtn" data-tooltip="Audit Findings" aria-label="Audit Details" style="display:none !important;">
         <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none">
             <defs>
               <!-- Gradient for clipboard top -->
@@ -2874,7 +3139,7 @@
         </svg>
 
       </button>
-      <button class="floating-icon-btn chart-btn" id="chartBtn" data-tooltip="Chart Details" aria-label="Chart Details">
+      <button class="floating-icon-btn chart-btn" id="chartBtn" data-tooltip="Chart Details" aria-label="Chart Details" style="display:none !important;">
         <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" aria-hidden="true">
           <!-- Gradient Definition -->
           <defs>
@@ -2925,21 +3190,6 @@
             <line x1="6" y1="19" x2="18" y2="19" stroke="#D1D5DB" stroke-width="1" stroke-linecap="round"/>
         </svg>
       </button>
-      <button class="floating-icon-btn member-risk-btn" id="memberRiskBtn" data-tooltip="Member Risk Profile" aria-label="Member Risk Profile">
-        <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none">
-          <defs>
-            <linearGradient id="riskGradient" x1="0" y1="0" x2="24" y2="24" gradientUnits="userSpaceOnUse">
-              <stop offset="0%" stop-color="#8B5CF6"/>
-              <stop offset="100%" stop-color="#6366F1"/>
-            </linearGradient>
-          </defs>
-          <rect x="4" y="4" width="16" height="16" rx="3" fill="white" stroke="url(#riskGradient)" stroke-width="2"/>
-          <path d="M7 14l3-3 2 2 4-4" stroke="url(#riskGradient)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
-          <circle cx="8.5" cy="10.5" r="1.5" fill="#8B5CF6"/>
-          <circle cx="12" cy="7.5" r="1.5" fill="#6366F1"/>
-          <circle cx="15.5" cy="12" r="1.5" fill="#8B5CF6"/>
-        </svg>
-      </button>
       <button class="floating-icon-btn notes-btn" id="doc_quality" data-tooltip="DQA Details" aria-label="DQA Details">
         <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none">
 
@@ -2975,187 +3225,127 @@
     // DQA button click handler
     document.getElementById('doc_quality').addEventListener('click', async () => {
 
-      const isAlreadyOnDQA =
-        contentType === 'dqa' &&
-        document.getElementById('doc_quality').classList.contains('active');
+  const isAlreadyOnDQA = contentType === 'dqa';
 
-      showPanel('dqa');
+  showPanel('dqa');
 
-      const chartContent =
-        document.getElementById('chartContent');
+  const chartContent =
+    document.getElementById('chartContent');
 
-      // Refresh existing view
-      if (isAlreadyOnDQA) {
+  // Refresh if already on DQA
+  if (isAlreadyOnDQA) {
 
-        if (chartContent) {
-          chartContent.innerHTML = `
+    console.log(
+      '🔄 Refreshing DQA data for member:',
+      currentMemberId
+    );
+
+    const patientEl =
+      document.getElementById('patientNameDisplay');
+
+    if (patientEl) {
+      patientEl.textContent =
+        currentMemberName || 'N/A';
+    }
+
+    if (chartContent) {
+      chartContent.innerHTML = `
         <div style="padding:20px">
           Refreshing DQA details...
         </div>
       `;
-        }
+    }
 
-        try {
+    try {
 
-          const response =
-            await chrome.runtime.sendMessage({
-              action: 'fetchDqaDetails',
-              payload: {
-                member_id: currentMemberId,
-                member_name: currentMemberName
-              }
-            });
-
-          if (response.error) {
-            throw new Error(response.error);
+      const response =
+        await chrome.runtime.sendMessage({
+          action: 'fetchDqaDetails',
+          payload: {
+            member_id: currentMemberId,
+            member_name: currentMemberName
           }
+        });
 
-          const apiData =
-            response?.data?.data?.details || [];
-
-          // ✅ MAP API RESPONSE
-          dqaData = apiData.map(item => ({
-
-            id: item.id,
-
-            Condition: item.cn || '',
-
-            "ICD-10": item.rc || '',
-
-            encounter_documented: item.enc_doc || '',
-
-            meat_present: item.me_p || '',
-
-            meat_absent: item.me_a || '',
-
-            supporting_clinical_evidence: item.sce || '',
-
-            education_priority: item.ep || '',
-
-            documentation_strength: item.ds || '',
-
-            comment: item.an_cm || '',
-
-            hcc: item.hcc || '',
-
-            rx_hcc: item.rx || ''
-
-          }));
-
-          showDQAContent();
-
-          const patientEl =
-            document.getElementById('patientNameDisplay');
-
-          if (patientEl) {
-            patientEl.textContent =
-              currentMemberName || 'N/A';
-          }
-
-        } catch (err) {
-
-          console.error(err);
-
-          chartContent.innerHTML = `
-        <div style="padding:20px;color:#c00">
-          Failed to load DQA details:
-          ${err.message}
-        </div>
-      `;
-        }
-
-        return;
+      if (response.error) {
+        throw new Error(response.error);
       }
 
-      // Cached data
-      if (dqaData.length > 0) {
+      const apiData =
+        response?.data?.data?.details || [];
 
-        showDQAContent();
+      dqaData = apiData.map(item => ({
 
-        const patientEl =
-          document.getElementById('patientNameDisplay');
+        id: item.id,
 
-        if (patientEl) {
-          patientEl.textContent =
-            currentMemberName || 'N/A';
-        }
+        Condition: item.cn || '',
 
-        return;
-      }
+        "ICD-10": item.rc || '',
 
-      // Initial load
-      chartContent.innerHTML = `
-    <div style="padding:20px">
-      Loading DQA details...
-    </div>
-  `;
+        encounter_documented: item.enc_doc || '',
 
-      try {
+        meat_present: item.me_p || '',
 
-        const response =
-          await chrome.runtime.sendMessage({
-            action: 'fetchDqaDetails',
-            payload: {
-              member_id: currentMemberId,
-              member_name: currentMemberName
-            }
-          });
+        meat_absent: item.me_a || '',
 
-        if (response.error) {
-          throw new Error(response.error);
-        }
+        supporting_clinical_evidence: item.sce || '',
 
-        const apiData =
-          response?.data?.data?.details || [];
+        education_priority: item.ep || '',
 
-        // ✅ MAP API RESPONSE
-        dqaData = apiData.map(item => ({
+        documentation_strength: item.ds || '',
 
-          id: item.id,
+        comment: item.an_cm || '',
 
-          Condition: item.cn || '',
+        hcc: item.hcc || '',
 
-          "ICD-10": item.rc || '',
+        rx_hcc: item.rx || ''
 
-          encounter_documented: item.enc_doc || '',
+      }));
 
-          meat_present: item.me_p || '',
+      console.log(
+        '✅ DQA refreshed:',
+        dqaData.length
+      );
 
-          meat_absent: item.me_a || '',
+      showDQAContent();
 
-          supporting_clinical_evidence: item.sce || '',
+    } catch (err) {
 
-          education_priority: item.ep || '',
+      console.error(err);
 
-          documentation_strength: item.ds || '',
-
-          comment: item.an_cm || ''
-
-        }));
-
-        showDQAContent();
-
-        const patientEl =
-          document.getElementById('patientNameDisplay');
-
-        if (patientEl) {
-          patientEl.textContent =
-            currentMemberName || 'N/A';
-        }
-
-      } catch (err) {
-
-        console.error(err);
-
+      if (isNotFoundError(err)) {
+        showApiNotPresentMessage('dqa');
+      } else {
         chartContent.innerHTML = `
-      <div style="padding:20px;color:#c00">
-        Failed to load DQA details:
-        ${err.message}
-      </div>
-    `;
+          <div style="padding:20px;color:#c00">
+            Failed to refresh DQA details:
+            ${err.message}
+          </div>
+        `;
       }
+    }
 
-    });
+    return;
+  }
+
+  // Cached data
+  if (dqaData.length > 0) {
+
+    showDQAContent();
+
+    const patientEl =
+      document.getElementById('patientNameDisplay');
+
+    if (patientEl) {
+      patientEl.textContent =
+        currentMemberName || 'N/A';
+    }
+
+    return;
+  }
+
+  // First load...
+});
     document.getElementById('chartBtn').addEventListener('click', async () => {
       // Check if we're already on chart view and user wants to refresh
       const isAlreadyOnChart = contentType === 'chart' && document.getElementById('chartBtn').classList.contains('active');
@@ -4165,7 +4355,7 @@
               <button aria-label="add-note" class="note-button" tabindex="0">
                 <!-- left icon -->
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="note-icon" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
-                <span class="note-text">DQA Details</span>
+                <span class="note-text">Notes</span>
               </button>
             </span>
             <span class="value" style="display:block;transform: translateY(10px);">${condition.noteText || ' '}</span>
@@ -5015,14 +5205,14 @@
 
     // const chartNumber = chartNumberEl ? (chartNumberEl.textContent || chartNumberEl.getAttribute('data-chart-number') || '').trim() : '';
     // const patientName = patientNameEl ? (patientNameEl.textContent || '').trim() : '';
-    // const chartNumber = window.prompt("enter the chart number");
-    // const patientName = window.prompt("enter the patient name");
-    const table = document.querySelector(TABLE_SELECTOR);
-    const ul = document.querySelector(UL_SELECTOR);
-    if (!table || !ul) return;
+    const chartNumber = window.prompt("enter the chart number");
+    const patientName = window.prompt("enter the patient name");
+    // const table = document.querySelector(TABLE_SELECTOR);
+    // const ul = document.querySelector(UL_SELECTOR);
+    // if (!table || !ul) return;
 
-    const chartNumber = document.querySelector("#chartNumber")?.textContent?.trim();
-    const patientName = document.querySelector("#patientName")?.textContent?.trim();
+    // const chartNumber = document.querySelector("#chartNumber")?.textContent?.trim();
+    // const patientName = document.querySelector("#patientName")?.textContent?.trim();
 
 
     if (!chartNumber || !patientName) {
