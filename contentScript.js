@@ -3896,7 +3896,7 @@ ${meatAbsent
       document.getElementById('chartTitle').textContent = 'DQA Analysis';
 
       const subEl = document.getElementById('chartSubTitle');
-      if (subEl) subEl.textContent = 'Documentation Quality Analysis';
+      // if (subEl) subEl.textContent = 'Documentation Quality Analysis';
 
       // show chart-style header
       const reviewStatusEl = document.getElementById('reviewStatusHeader');
