@@ -896,12 +896,25 @@ ${meatAbsent
          border-left-color: #28a745 !important;
        }
 
+       .floating-icon-btn.notes-btn.active::before {
+         background: linear-gradient(135deg, #28a745 0%, #20c997 100%) !important;
+       }
+
+       .floating-icon-btn.notes-btn.active::after {
+         border-left-color: #28a745 !important;
+       }
+
        .floating-icon-btn.chart-btn.active {
          background: #28a745 !important;
          color: #fff !important;
        }
 
        .floating-icon-btn.audit-btn.active {
+         background: #28a745 !important;
+         color: #fff !important;
+       }
+
+       .floating-icon-btn.notes-btn.active {
          background: #28a745 !important;
          color: #fff !important;
        }
@@ -3693,7 +3706,7 @@ ${meatAbsent
       const dqaBtn = document.getElementById('doc_quality');
       if (dqaBtn) {
         dqaBtn.classList.remove('active');
-        dqaBtn.setAttribute('data-tooltip', 'Notes');
+        dqaBtn.setAttribute('data-tooltip', 'DQA Details');
       }
       if (chartBtn) chartBtn.setAttribute('data-tooltip', 'HCC Analysis');
       // Keep title static and show loading state in the bracketed count while data fetches
@@ -3732,7 +3745,7 @@ ${meatAbsent
       const dqaBtn = document.getElementById('doc_quality');
       if (dqaBtn) {
         dqaBtn.classList.remove('active');
-        dqaBtn.setAttribute('data-tooltip', 'Notes');
+        dqaBtn.setAttribute('data-tooltip', 'DQA Details');
       }
       if (chartBtn) chartBtn.setAttribute('data-tooltip', 'Chart Details');
       document.getElementById('chartTitle').textContent = 'Audit Details';
@@ -3782,7 +3795,7 @@ ${meatAbsent
       const dqaBtn = document.getElementById('doc_quality');
       if (dqaBtn) {
         dqaBtn.classList.remove('active');
-        dqaBtn.setAttribute('data-tooltip', 'Notes');
+        dqaBtn.setAttribute('data-tooltip', 'DQA Details');
       }
       document.getElementById('chartTitle').textContent = 'Medical Record Analysis';
       const subEl = document.getElementById('chartSubTitle');
@@ -3834,7 +3847,7 @@ ${meatAbsent
       const dqaBtn = document.getElementById('doc_quality');
       if (dqaBtn) {
         dqaBtn.classList.remove('active');
-        dqaBtn.setAttribute('data-tooltip', 'Notes');
+        dqaBtn.setAttribute('data-tooltip', 'DQA Details');
       }
       document.getElementById('chartTitle').textContent = 'Member Risk Profile';
       const subEl = document.getElementById('chartSubTitle');
@@ -3857,7 +3870,7 @@ ${meatAbsent
 
       if (dqaBtn) {
         dqaBtn.classList.add('active');
-        dqaBtn.setAttribute('data-tooltip', 'DQA Details');
+        dqaBtn.setAttribute('data-tooltip', 'DQA Analysis');
       }
 
       if (chartBtn) {
@@ -3880,10 +3893,10 @@ ${meatAbsent
         memberRiskBtn.setAttribute('data-tooltip', 'Member Risk Profile');
       }
 
-      document.getElementById('chartTitle').textContent = 'Documentation Quality Analysis';
+      document.getElementById('chartTitle').textContent = 'DQA Analysis';
 
       const subEl = document.getElementById('chartSubTitle');
-      if (subEl) subEl.textContent = '';
+      if (subEl) subEl.textContent = 'Documentation Quality Analysis';
 
       // show chart-style header
       const reviewStatusEl = document.getElementById('reviewStatusHeader');
