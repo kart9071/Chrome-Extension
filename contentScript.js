@@ -3117,31 +3117,23 @@ ${meatAbsent
         </svg>
       </button>
       <button class="floating-icon-btn notes-btn" id="doc_quality" data-tooltip="DQA Details" aria-label="DQA Details">
-        <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none">
-
-          <!-- Background -->
-          <rect x="4" y="3" width="16" height="18" rx="2"
-                fill="white"
-                stroke="#7C3AED"
-                stroke-width="2"/>
-
-          <!-- Lines -->
-          <line x1="7" y1="8" x2="17" y2="8"
-                stroke="#7C3AED"
-                stroke-width="1.8"
-                stroke-linecap="round"/>
-
-          <line x1="7" y1="12" x2="17" y2="12"
-                stroke="#7C3AED"
-                stroke-width="1.8"
-                stroke-linecap="round"/>
-
-          <line x1="7" y1="16" x2="14" y2="16"
-                stroke="#7C3AED"
-                stroke-width="1.8"
-                stroke-linecap="round"/>
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="28"
+          height="28"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="#000000"
+          stroke-width="2.2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <path d="M21 7h-3a2 2 0 0 1-2-2V2"></path>
+          <path d="M21 6v6.5c0 .8-.7 1.5-1.5 1.5h-7c-.8 0-1.5-.7-1.5-1.5v-9c0-.8.7-1.5 1.5-1.5H17Z"></path>
+          <path d="M7 8v8.8c0 .3.2.6.4.8.2.2.5.4.8.4H15"></path>
+          <path d="M3 12v8.8c0 .3.2.6.4.8.2.2.5.4.8.4H11"></path>
         </svg>
-      </button>
+    </button>
     `;
 
     document.body.appendChild(buttonsDiv);
