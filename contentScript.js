@@ -3476,7 +3476,7 @@ ${meatAbsent
       if (headerCountEl) headerCountEl.textContent = 'Loading...';
       // Reset patient name to loading state - will be updated by audit API response
       const patientEl = document.getElementById('patientNameDisplay');
-      if (patientEl) patientEl.textContent = 'Loading...';
+      if (patientEl) patientEl.textContent = currentMemberName;
       try {
         await fetchAuditDetails(currentMemberId || '89700511', currentMemberName || 'John Doe');
       } catch (err) {
@@ -3536,7 +3536,7 @@ ${meatAbsent
       if (headerCountEl) headerCountEl.textContent = 'Loading...';
 
       const patientEl = document.getElementById('patientNameDisplay');
-      if (patientEl) patientEl.textContent = 'Loading...';
+      if (patientEl) patientEl.textContent = currentMemberName;
 
       try {
         isMRAnalysisLoading = true;
