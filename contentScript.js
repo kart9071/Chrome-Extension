@@ -112,11 +112,12 @@
 
     .dqa-filter-tabs {
   display: flex !important;
-  gap: 8px !important;
-  padding: 8px !important;
+  gap: 2px !important;
+  padding: 8px 8px 0px 8px !important;
   background: #ffffff !important;
   border-bottom: 1px solid #e5e7eb !important;
   width: 100%;
+  justify-content:space-between;
 }
 
 .dqa-filter-btn {
@@ -253,20 +254,30 @@
   // Cached chart review status (used when chart API returns during preload)
   let currentChartStatusText = '';
   let currentChartStatusColor = '';
+  // DQA empty-response marker so the UI can show not-present immediately
+  let dqaNotPresent = false;
 
 
-  if (!window.dqaStrengthFilter) {
-    window.dqaStrengthFilter = "ALL";
-  }
+  // if (!window.dqaStrengthFilter) {
+  //   window.dqaStrengthFilter = "ALL";
+  // }
 
   function showDQAContent() {
 
     injectAuditStyles();
 
+    if (!window.dqaStrengthFilter) {
+      window.dqaStrengthFilter = "STRONG";
+    }
     const chartContent =
       document.getElementById('chartContent');
 
     if (!chartContent) return;
+
+    if (dqaData.length === 0 && dqaNotPresent) {
+      showApiNotPresentMessage('dqa');
+      return;
+    }
 
     if (!window.expandedDQARows) {
       window.expandedDQARows = new Set();
@@ -299,17 +310,30 @@
     //         .toUpperCase() === window.dqaStrengthFilter
     //     );
 
+    // let filteredData = [...dqaData];
+
+    // // Existing Strong / Moderate / Weak filter
+    // if (window.dqaStrengthFilter !== "ALL") {
+
+    //   filteredData = filteredData.filter(row =>
+    //     (row.documentation_strength || '')
+    //       .trim()
+    //       .toUpperCase() === window.dqaStrengthFilter
+    //   );
+    // }
+
     let filteredData = [...dqaData];
 
-    // Existing Strong / Moderate / Weak filter
-    if (window.dqaStrengthFilter !== "ALL") {
+    const activeFilter = (window.dqaStrengthFilter || "STRONG").trim().toUpperCase();
 
-      filteredData = filteredData.filter(row =>
-        (row.documentation_strength || '')
-          .trim()
-          .toUpperCase() === window.dqaStrengthFilter
-      );
-    }
+    // Always apply filter
+    filteredData = filteredData.filter(row => {
+      const strength = (row.documentation_strength || '')
+        .trim()
+        .toUpperCase();
+
+      return strength === activeFilter;
+    });
 
     const selectedFilters =
       window.dqaCategoryFilters || [];
@@ -380,36 +404,21 @@
     <div class="dqa-condition-card">
 
       <!-- Badges Row -->
-      <div class="dqa-card-badges-row">
+      <div class="dqa-header-row">
 
-        <div class="dqa-badge-group">
+        <div class="dqa-condition-text">
+    <h5 class="dqa-card-title">
+      ${escapeHtml(row.Condition || '')}
+    </h5>
+  </div>
 
-          ${row.hcc
-          ? `
-                <span class="hcc-badge">
-                  HCC
-                </span>
-              `
-          : ''
-        }
-
-          ${row.rx_hcc
-          ? `
-                <span class="rx-hcc-badge">
-                  Rx-HCC
-                </span>
-              `
-          : ''
-        }
-
-        </div>
-
+  <!-- RIGHT: Badges -->
+  <div class="dqa-badge-group">
+    ${row.hcc ? `<span class="hcc-badge">HCC</span>` : ''}
+    ${row.rx_hcc ? `<span class="rx-hcc-badge">Rx-HCC</span>` : ''}
+  </div>
+  
       </div>
-
-      <!-- Condition -->
-      <h5 class="dqa-card-title">
-        ${escapeHtml(row.Condition || '')}
-      </h5>
 
       <!-- Encounter Date -->
       ${encounterDates
@@ -521,6 +530,7 @@ ${meatAbsent
 ">
      <div class="dqa-filter-tabs">
 
+    <div>
      <button
       class="dqa-filter-btn ${window.dqaStrengthFilter === 'WEAK' ? 'active' : ''}"
       data-filter="WEAK">
@@ -538,6 +548,7 @@ ${meatAbsent
       data-filter="STRONG">
       Strong
     </button>
+    </div>
  <!-- Legend -->
   <div style="
     display:flex;
@@ -547,7 +558,6 @@ ${meatAbsent
     font-weight:600;
     color:#64748b;
     flex-wrap:wrap;
-    transform: translate(84px, 11px);
   ">
 
     <span style="display:flex;align-items:center;gap:4px;">
@@ -736,120 +746,7 @@ ${meatAbsent
     }
 
   }
-  function renderExpandedDqaDetails(row) {
 
-    const encounterDates =
-      row.encounter_documented || '';
-
-    const meatPresent =
-      row.meat_present || '';
-
-    const meatAbsent =
-      row.meat_absent || '';
-
-    const supportingEvidence =
-      row.supporting_clinical_evidence || '';
-
-    const documentationStrength =
-      row.documentation_strength || '';
-
-    const comment =
-      row.comment || '';
-
-    return `
-    <div class="audit-card-body">
-
-      ${encounterDates ? `
-        <div class="audit-box">
-
-          <div class="audit-label">
-            Encounter Dates:
-          </div>
-
-
-          <div class="audit-text">
-            ${escapeHtml(encounterDates)}
-          </div>
-
-        </div>
-      ` : ''}
-
-      ${meatPresent ? `
-        <div class="audit-box">
-
-          <div class="audit-label">
-            MEAT Present :
-          </div>
-
-          <div class="audit-text">
-            ${escapeHtml(meatPresent).trim()}
-          </div>
-
-        </div>
-      ` : ''}
-
-      ${meatAbsent ? `
-        <div class="audit-box">
-
-          <div class="audit-label">
-            MEAT Absent :
-          </div>
-
-          <div class="audit-text">
-            ${escapeHtml(meatAbsent).trim()}
-          </div>
-
-        </div>
-      ` : ''}
-
-      ${supportingEvidence ? `
-        <div class="audit-box">
-
-          <div class="audit-label">
-            Supporting Evidence :
-          </div>
-
-          <div class="audit-text">
-            ${escapeHtml(supportingEvidence).trim()}
-          </div>
-
-        </div>
-      ` : ''}
-
-      ${documentationStrength ? `
-        <div class="audit-box">
-
-          <div class="audit-label">
-            Quality :
-          </div>
-
-
-          <div class="audit-text">
-            ${escapeHtml(documentationStrength)}
-          </div>
-
-        </div>
-      ` : ''}
-
-      ${comment ? `
-        <div class="audit-box">
-
-          <div class="audit-label">
-            Comment
-          </div>
-
-          <div class="audit-separator">:</div>
-
-          <div class="audit-text">
-            ${escapeHtml(comment)}
-          </div>
-
-        </div>
-      ` : ''}
-
-    </div>
-  `;
-  }
   // Add CSS styles
   function addStyles() {
     const style = document.createElement('style');
@@ -896,6 +793,10 @@ ${meatAbsent
 
       .floating-buttons.shifted {
         right: 50% !important;
+      }
+
+      .dqa-middle-tabs{
+        justify-content: space-between;
       }
 
        .floating-icon-btn {
@@ -1395,12 +1296,36 @@ ${meatAbsent
         box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06) !important;
         height: fit-content !important;
         transition: all 0.3s ease !important;
+        display: flex;
+        flex-direction:column;
+        gap:4px;
       }
 
       .dqa-condition-card:hover {
         box-shadow: 0 3px 12px rgba(0, 0, 0, 0.1) !important;
         transform: translateY(-1px) !important;
       }
+
+      .dqa-header-row {
+        display: flex !important;
+        width: 100% !important;
+        gap: 12px !important;
+        align-items: flex-start !important;
+      }
+
+      .dqa-header-row .dqa-badge-group {
+  flex: 1 !important;
+  display: flex !important;
+  flex-wrap: wrap !important;
+  gap: 6px !important;
+  align-items: flex-start !important;
+  justify-content: flex-end !important;
+}
+
+.dqa-condition-text {
+  flex: 3 !important;
+  min-width: 0 !important; /* IMPORTANT for wrapping */
+}
 
        /* Badges Row */
        .card-badges-row {
@@ -1517,6 +1442,9 @@ ${meatAbsent
         color: #111827 !important;
         margin: 0 0 10px 0 !important;
         line-height: 1.3 !important;
+        white-space: normal !important;
+        word-break: break-word !important;
+        overflow-wrap: anywhere !important;
       }
 
       /* Card Description Paragraph */
@@ -1556,8 +1484,6 @@ ${meatAbsent
       }
 
       .dqa-info-row.dqa-indicators-row {
-        background: #ecfdf5 !important; /* light green */
-        border: 0.5px solid #81c791ff !important; /* darker green border */
         padding: 8px 10px !important;
         gap: 10px !important;
         border-radius: 6px !important;
@@ -1586,7 +1512,7 @@ ${meatAbsent
         padding: 8px 10px !important;
         gap: 10px !important;
         border-radius: 6px !important;
-        margin-top: 8px !important; /* small gap between indicators and this row */
+        margin-top: 0px !important; /* small gap between indicators and this row */
       }
       .dqa-info-row.dqa-evidence-row .label {
         color: #92400e !important; /* darker orange for label */
@@ -3139,7 +3065,7 @@ ${meatAbsent
         </svg>
 
       </button>
-      <button class="floating-icon-btn chart-btn" id="chartBtn" data-tooltip="Chart Details" aria-label="Chart Details" style="display:none !important;">
+      <button class="floating-icon-btn chart-btn" id="chartBtn" data-tooltip="Chart Details" aria-label="Chart Details">
         <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" aria-hidden="true">
           <!-- Gradient Definition -->
           <defs>
@@ -3161,7 +3087,7 @@ ${meatAbsent
           <rect width="18" height="18" x="3" y="3" rx="3" stroke="white" stroke-opacity="0.2" stroke-width="1" />
         </svg>
       </button>
-      <button class="floating-icon-btn mr-analysis-btn" id="mrAnalysisBtn" data-tooltip="MR Details" aria-label="Medical Record Analysis">
+      <button class="floating-icon-btn mr-analysis-btn" id="mrAnalysisBtn" data-tooltip="MR Details" aria-label="Medical Record Analysis" style="display:none !important;">
         <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none">
             <defs>
               <linearGradient id="analysisGradient" x1="0" y1="0" x2="24" y2="24" gradientUnits="userSpaceOnUse">
@@ -3225,127 +3151,178 @@ ${meatAbsent
     // DQA button click handler
     document.getElementById('doc_quality').addEventListener('click', async () => {
 
-  const isAlreadyOnDQA = contentType === 'dqa';
+      const isAlreadyOnDQA = contentType === 'dqa';
 
-  showPanel('dqa');
+      showPanel('dqa');
 
-  const chartContent =
-    document.getElementById('chartContent');
+      const chartContent =
+        document.getElementById('chartContent');
 
-  // Refresh if already on DQA
-  if (isAlreadyOnDQA) {
+      // Refresh if already on DQA
+      if (isAlreadyOnDQA) {
 
-    console.log(
-      '🔄 Refreshing DQA data for member:',
-      currentMemberId
-    );
+        console.log(
+          '🔄 Refreshing DQA data for member:',
+          currentMemberId
+        );
 
-    const patientEl =
-      document.getElementById('patientNameDisplay');
+        const patientEl =
+          document.getElementById('patientNameDisplay');
 
-    if (patientEl) {
-      patientEl.textContent =
-        currentMemberName || 'N/A';
-    }
+        if (patientEl) {
+          patientEl.textContent =
+            currentMemberName || 'N/A';
+        }
 
-    if (chartContent) {
-      chartContent.innerHTML = `
+        if (chartContent) {
+          chartContent.innerHTML = `
         <div style="padding:20px">
           Refreshing DQA details...
         </div>
       `;
-    }
+        }
 
-    try {
+        try {
 
-      const response =
-        await chrome.runtime.sendMessage({
-          action: 'fetchDqaDetails',
-          payload: {
-            member_id: currentMemberId,
-            member_name: currentMemberName
+          const response =
+            await chrome.runtime.sendMessage({
+              action: 'fetchDqaDetails',
+              payload: {
+                member_id: currentMemberId,
+                member_name: currentMemberName
+              }
+            });
+
+          if (response.error) {
+            throw new Error(response.error);
           }
-        });
 
-      if (response.error) {
-        throw new Error(response.error);
-      }
+          const apiData =
+            response?.data?.data?.details || [];
 
-      const apiData =
-        response?.data?.data?.details || [];
+          dqaData = apiData.map(item => ({
 
-      dqaData = apiData.map(item => ({
+            id: item.id,
 
-        id: item.id,
+            Condition: item.cn || '',
 
-        Condition: item.cn || '',
+            "ICD-10": item.rc || '',
 
-        "ICD-10": item.rc || '',
+            encounter_documented: item.enc_doc || '',
 
-        encounter_documented: item.enc_doc || '',
+            meat_present: item.me_p || '',
 
-        meat_present: item.me_p || '',
+            meat_absent: item.me_a || '',
 
-        meat_absent: item.me_a || '',
+            supporting_clinical_evidence: item.sce || '',
 
-        supporting_clinical_evidence: item.sce || '',
+            education_priority: item.ep || '',
 
-        education_priority: item.ep || '',
+            documentation_strength: item.ds || '',
 
-        documentation_strength: item.ds || '',
+            comment: item.an_cm || '',
 
-        comment: item.an_cm || '',
+            hcc: item.hcc || '',
 
-        hcc: item.hcc || '',
+            rx_hcc: item.rx || ''
 
-        rx_hcc: item.rx || ''
+          }));
 
-      }));
+          console.log(
+            '✅ DQA refreshed:',
+            dqaData.length
+          );
 
-      console.log(
-        '✅ DQA refreshed:',
-        dqaData.length
-      );
+          showDQAContent();
 
-      showDQAContent();
+        } catch (err) {
 
-    } catch (err) {
+          console.error(err);
 
-      console.error(err);
-
-      if (isNotFoundError(err)) {
-        showApiNotPresentMessage('dqa');
-      } else {
-        chartContent.innerHTML = `
+          if (isNotFoundError(err)) {
+            showApiNotPresentMessage('dqa');
+          } else {
+            chartContent.innerHTML = `
           <div style="padding:20px;color:#c00">
             Failed to refresh DQA details:
             ${err.message}
           </div>
         `;
+          }
+        }
+
+        return;
       }
-    }
 
-    return;
-  }
+      // Cached data
+      if (dqaData.length > 0) {
 
-  // Cached data
-  if (dqaData.length > 0) {
+        showDQAContent();
 
-    showDQAContent();
+        const patientEl =
+          document.getElementById('patientNameDisplay');
 
-    const patientEl =
-      document.getElementById('patientNameDisplay');
+        if (patientEl) {
+          patientEl.textContent =
+            currentMemberName || 'N/A';
+        }
 
-    if (patientEl) {
-      patientEl.textContent =
-        currentMemberName || 'N/A';
-    }
+        return;
+      }
 
-    return;
-  }
+      if (dqaNotPresent) {
+        showApiNotPresentMessage('dqa');
+        return;
+      }
 
-  // First load...
-});
+      // First load...
+      if (chartContent) chartContent.innerHTML = `<div style="padding:20px">Loading DQA details...</div>`;
+      try {
+        const apiData = await fetchDqaDetailsFromServiceWorker(currentMemberId || '89700511', currentMemberName || 'N/A');
+        const details =
+          apiData &&
+            apiData.data &&
+            Array.isArray(apiData.data.details)
+            ? apiData.data.details
+            : [];
+
+        dqaData = details.map((item, index) => ({
+          id: item.id || index,
+          Condition: item.cn || '',
+          "ICD-10": item.rc || '',
+          encounter_documented: item.enc_doc || '',
+          meat_present: item.me_p || '',
+          meat_absent: item.me_a || '',
+          supporting_clinical_evidence: item.sce || '',
+          education_priority: item.ep || '',
+          documentation_strength: item.ds || '',
+          comment: item.an_cm || '',
+          hcc: item.hcc || '',
+          rx_hcc: item.rx || ''
+        }));
+
+        dqaNotPresent = dqaData.length === 0;
+
+        if (dqaNotPresent) {
+          showApiNotPresentMessage('dqa');
+          return;
+        }
+
+        showDQAContent();
+      } catch (err) {
+        console.error(err);
+        if (isNotFoundError(err)) {
+          dqaNotPresent = true;
+          showApiNotPresentMessage('dqa');
+        } else {
+          if (chartContent) chartContent.innerHTML = `
+          <div style="padding:20px;color:#c00">
+            Failed to load DQA details: ${err.message}
+          </div>
+        `;
+        }
+      }
+    });
     document.getElementById('chartBtn').addEventListener('click', async () => {
       // Check if we're already on chart view and user wants to refresh
       const isAlreadyOnChart = contentType === 'chart' && document.getElementById('chartBtn').classList.contains('active');
@@ -3721,6 +3698,11 @@ ${meatAbsent
         memberRiskBtn.classList.remove('active');
         memberRiskBtn.setAttribute('data-tooltip', 'Member Risk Profile');
       }
+      const dqaBtn = document.getElementById('doc_quality');
+      if (dqaBtn) {
+        dqaBtn.classList.remove('active');
+        dqaBtn.setAttribute('data-tooltip', 'Notes');
+      }
       if (chartBtn) chartBtn.setAttribute('data-tooltip', 'HCC Analysis');
       // Keep title static and show loading state in the bracketed count while data fetches
       const titleEl = document.getElementById('chartTitle');
@@ -3754,6 +3736,11 @@ ${meatAbsent
       if (memberRiskBtn) {
         memberRiskBtn.classList.remove('active');
         memberRiskBtn.setAttribute('data-tooltip', 'Member Risk Profile');
+      }
+      const dqaBtn = document.getElementById('doc_quality');
+      if (dqaBtn) {
+        dqaBtn.classList.remove('active');
+        dqaBtn.setAttribute('data-tooltip', 'Notes');
       }
       if (chartBtn) chartBtn.setAttribute('data-tooltip', 'Chart Details');
       document.getElementById('chartTitle').textContent = 'Audit Details';
@@ -3798,6 +3785,12 @@ ${meatAbsent
       if (memberRiskBtn) {
         memberRiskBtn.classList.remove('active');
         memberRiskBtn.setAttribute('data-tooltip', 'Member Risk Profile');
+      }
+
+      const dqaBtn = document.getElementById('doc_quality');
+      if (dqaBtn) {
+        dqaBtn.classList.remove('active');
+        dqaBtn.setAttribute('data-tooltip', 'Notes');
       }
       document.getElementById('chartTitle').textContent = 'Medical Record Analysis';
       const subEl = document.getElementById('chartSubTitle');
@@ -3910,22 +3903,8 @@ ${meatAbsent
       //   reviewStatusEl.style.color = '#7C3AED';
       // }
       if (reviewStatusEl) {
-
-        reviewStatusEl.style.display = '';
-
-        let dqaHeader = 'Documentation Quality Analysis';
-
-        console.log('DQA Meta:', dqaMeta);
-
-        if (dqaMeta?.sts === 1) {
-          dqaHeader = 'Under DQA Charts';
-        }
-        else if (dqaMeta?.sts === 2 || dqaMeta?.sts === 3) {
-          dqaHeader = 'Under Reviewed Charts';
-        }
-
-        reviewStatusEl.textContent = dqaHeader;
-        reviewStatusEl.style.color = '#7C3AED';
+        reviewStatusEl.style.display = 'none';
+        reviewStatusEl.textContent = '';
       }
       if (auditStatusEl) {
         auditStatusEl.style.display = 'none';
@@ -5205,14 +5184,14 @@ ${meatAbsent
 
     // const chartNumber = chartNumberEl ? (chartNumberEl.textContent || chartNumberEl.getAttribute('data-chart-number') || '').trim() : '';
     // const patientName = patientNameEl ? (patientNameEl.textContent || '').trim() : '';
-    const chartNumber = window.prompt("enter the chart number");
+    // const chartNumber = window.prompt("enter the chart number");
     const patientName = window.prompt("enter the patient name");
-    // const table = document.querySelector(TABLE_SELECTOR);
-    // const ul = document.querySelector(UL_SELECTOR);
-    // if (!table || !ul) return;
+    const table = document.querySelector(TABLE_SELECTOR);
+    const ul = document.querySelector(UL_SELECTOR);
+    if (!table || !ul) return;
 
-    // const chartNumber = document.querySelector("#chartNumber")?.textContent?.trim();
-    // const patientName = document.querySelector("#patientName")?.textContent?.trim();
+    const chartNumber = document.querySelector("#chartNumber")?.textContent?.trim();
+    const patientName = document.querySelector("#patientName")?.textContent?.trim();
 
 
     if (!chartNumber || !patientName) {
@@ -5464,6 +5443,8 @@ ${meatAbsent
             ? apiData.data.details
             : [];
 
+        dqaNotPresent = details.length === 0;
+
         dqaMeta = {
           sts: apiData?.data?.sts || null,
           doc_sc: apiData?.data?.doc_sc || null,
@@ -5527,6 +5508,7 @@ ${meatAbsent
           '⚠️ DQA preload failed:',
           dqaResponse.reason
         );
+
       }
       // Apply cached statuses to panel if it was created before preload data arrived
       setTimeout(() => {
