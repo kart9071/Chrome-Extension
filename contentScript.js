@@ -3584,7 +3584,7 @@ ${meatAbsent
   }
 
   // Create floating panel
-  function createFloatingPanel() {
+  function createFloatingPanel(memberName) {
     const existing = document.getElementById(FLOATING_DIV_ID);
     if (existing) return existing;
 
@@ -3609,7 +3609,7 @@ ${meatAbsent
         <div style="display:flex;flex-direction:column;gap:4px;flex:1;">
           <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
             <h3 id="chartTitle" style="font-size:15px !important;margin:0;">HCC Opportunities <span id="chartCount" style="font-weight:600;margin-left:8px;">[ 0 ]</span></h3>
-            <div id="patientNameDisplay" style="text-align:right;font-weight:700;font-size:15px;">Loading..</div>
+            <div id="patientNameDisplay" style="text-align:right;font-weight:700;font-size:15px;">${memberName}</div>
           </div>
           <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
             <div style="display:flex;flex-direction:column;gap:2px;">
@@ -3660,7 +3660,7 @@ ${meatAbsent
   function showPanel(type) {
     createFloatingButtons();
     createBackdrop();
-    createFloatingPanel();
+    createFloatingPanel(currentMemberName);
     const div = document.getElementById(FLOATING_DIV_ID);
     const backdrop = document.getElementById('backdrop');
     const floatingButtons = document.getElementById('floatingButtons');
@@ -4201,7 +4201,7 @@ ${meatAbsent
 
     if (!chartContent) {
       // Try to create the panel and re-query
-      createFloatingPanel();
+      createFloatingPanel(currentMemberName);
       chartContent = document.getElementById('chartContent');
     }
     if (!chartContent) return; // give up safely if still missing
@@ -5208,7 +5208,7 @@ ${meatAbsent
     addStyles();
     createFloatingButtons();
     createBackdrop();
-    createFloatingPanel();
+    createFloatingPanel(patientName);
 
     // Persist detected member info and mark loaded
     currentMemberId = chartNumber;
