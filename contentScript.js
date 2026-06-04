@@ -568,7 +568,7 @@ ${meatAbsent
       display:flex;
       align-items:center;
       gap:4px;
-      color:#16a34a;
+      color:#64748b;
     ">
       ✅ MEAT Present
     </span>
@@ -577,7 +577,7 @@ ${meatAbsent
       display:flex;
       align-items:center;
       gap:4px;
-      color:#dc2626;
+      color:#64748b;
     ">
       ❌ MEAT Absent
     </span>
@@ -5185,7 +5185,7 @@ ${meatAbsent
     // const chartNumber = chartNumberEl ? (chartNumberEl.textContent || chartNumberEl.getAttribute('data-chart-number') || '').trim() : '';
     // const patientName = patientNameEl ? (patientNameEl.textContent || '').trim() : '';
     // const chartNumber = window.prompt("enter the chart number");
-    const patientName = window.prompt("enter the patient name");
+    // const patientName = window.prompt("enter the patient name");
     const table = document.querySelector(TABLE_SELECTOR);
     const ul = document.querySelector(UL_SELECTOR);
     if (!table || !ul) return;
