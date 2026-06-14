@@ -267,7 +267,7 @@
     injectAuditStyles();
 
     if (!window.dqaStrengthFilter) {
-      window.dqaStrengthFilter = "STRONG";
+      window.dqaStrengthFilter = "WEAK";
     }
     const chartContent =
       document.getElementById('chartContent');
@@ -423,18 +423,14 @@
       <!-- Encounter Date -->
       ${encounterDates
           ? `
-      <div style="margin-bottom:10px;">
-        <span style="
-          display:inline-flex;
-          align-items:center;
-          gap:4px;
-          padding:4px 8px;
-          color:black;
-          font-size:11px;
-          font-weight:600;
-        ">
-          📅 ${escapeHtml(encounterDates)}
-        </span>
+      <div style="margin-bottom:10px;" class = "dqa-info-row dqa-date-row">
+        <span class="label">
+    📅
+  </span>
+
+  <span class="value">
+    ${escapeHtml(encounterDates)}
+  </span>
       </div>
     `
           : ''
@@ -445,10 +441,21 @@
     <div class="dqa-info-row dqa-indicators-row">
       <span class="label" style="
   color:#16a34a;
-  font-size:16px;
+  font-size:12px;
   line-height:1;
 ">
-  ✅
+  <svg xmlns="http://www.w3.org/2000/svg"
+     width="14"
+     height="14"
+     viewBox="0 0 24 24"
+     fill="none">
+  <path
+    d="M5 13L10 18L19 6"
+    stroke="#22C55E"
+    stroke-width="3"
+    stroke-linecap="round"
+    stroke-linejoin="round" />
+</svg>
 </span>
 
       <span class="value">
@@ -464,7 +471,7 @@ ${meatAbsent
     <div class="dqa-info-row dqa-indicators-row" style="margin-top:8px;">
       <span class="label" style="
   color:#dc2626;
-  font-size:16px;
+  font-size:10px;
   line-height:1;
 ">
   ❌
@@ -486,8 +493,8 @@ ${meatAbsent
               <span class="label">
 
                  <svg xmlns="http://www.w3.org/2000/svg"
-             width="18"
-             height="18"
+             width="11"
+             height="11"
              viewBox="0 0 24 24"
              fill="none"
              stroke="currentColor"
@@ -570,7 +577,28 @@ ${meatAbsent
       gap:4px;
       color:#64748b;
     ">
-      ✅ MEAT Present
+      <svg xmlns="http://www.w3.org/2000/svg"
+
+     width="14"
+
+     height="14"
+
+     viewBox="0 0 24 24"
+
+     fill="none">
+
+  <path
+
+    d="M5 13L10 18L19 6"
+
+    stroke="#22C55E"
+
+    stroke-width="3"
+
+    stroke-linecap="round"
+
+    stroke-linejoin="round" />
+    </svg> MEAT Present
     </span>
 
     <span style="
@@ -585,8 +613,8 @@ ${meatAbsent
     <span style="display:flex;align-items:center;gap:4px;">
 
                  <svg xmlns="http://www.w3.org/2000/svg"
-             width="14"
-             height="14"
+             width="9"
+             height="9"
              viewBox="0 0 24 24"
              fill="none"
              stroke="currentColor"
@@ -1482,10 +1510,24 @@ ${meatAbsent
         display: flex !important;
         align-items: flex-start !important;
         gap: 8px !important;
-        padding: 6px 0 !important;
+        padding: 3px 0 !important;
         font-size: 11px !important;
         color: #374151 !important;
+        line-height: 1 !important;
       }
+
+      .dqa-info-row .label {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.dqa-info-row .value {
+  flex: 1;
+  line-height: 1;
+}
 
       /* Special styling for the Clinical Indicators row */
       .card-info-row.indicators-row {
@@ -1500,11 +1542,33 @@ ${meatAbsent
         padding: 8px 10px !important;
         gap: 10px !important;
         border-radius: 6px !important;
+        border: 0.5px solid rgb(55 61 141) !important;
       }
       .dqa-info-row dqa-indicators-row .label {
         color: #111111ff !important;
         font-weight: 600 !important;
       }
+
+      .dqa-date-row {
+        display: flex !important;
+        align-items: flex-start !important;
+        gap: 10px !important;
+      }
+
+      .dqa-date-row .label {
+        display: flex !important;
+        width: 24px !important;
+        min-width: 14px !important;
+        margin-top: 1px !important;
+        padding-left: 10px !important
+      }
+
+      .dqa-date-row .value {
+        line-height: 1 !important;
+        font-size: 11px !important;
+        font-weight: 600 !important;
+      }
+
       /* Code Explanation row styling - light orange background, subtle border, rounded */
       .card-info-row.code-explanation-row {
         background: #fff7ed !important; /* very light orange */
@@ -1518,6 +1582,8 @@ ${meatAbsent
         color: #92400e !important; /* darker orange for label */
         font-weight: 600 !important;
       }
+
+      
 
       .dqa-info-row.dqa-evidence-row {
         background: #fff7ed !important; /* very light orange */
@@ -3870,7 +3936,7 @@ ${meatAbsent
 
       if (dqaBtn) {
         dqaBtn.classList.add('active');
-        dqaBtn.setAttribute('data-tooltip', 'DQA Analysis');
+        dqaBtn.setAttribute('data-tooltip', 'Documentation Quality Analysis.');
       }
 
       if (chartBtn) {
@@ -3893,7 +3959,7 @@ ${meatAbsent
         memberRiskBtn.setAttribute('data-tooltip', 'Member Risk Profile');
       }
 
-      document.getElementById('chartTitle').textContent = 'DQA Analysis';
+      document.getElementById('chartTitle').textContent = 'Documentation Quality Analysis';
 
       const subEl = document.getElementById('chartSubTitle');
       // if (subEl) subEl.textContent = 'Documentation Quality Analysis';
