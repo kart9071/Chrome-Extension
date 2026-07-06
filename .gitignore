@@ -1,0 +1,15 @@
+# Dependencies — run `npm install` on the target machine to restore
+node_modules/
+
+# Build output — run `npm run build` to regenerate
+dist/
+
+# OS junk
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+*.suo
+*.user

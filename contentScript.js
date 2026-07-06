@@ -5255,14 +5255,14 @@ ${meatAbsent
 
     // const chartNumber = chartNumberEl ? (chartNumberEl.textContent || chartNumberEl.getAttribute('data-chart-number') || '').trim() : '';
     // const patientName = patientNameEl ? (patientNameEl.textContent || '').trim() : '';
-    // const chartNumber = window.prompt("enter the chart number");
-    // const patientName = window.prompt("enter the patient name");
-    const table = document.querySelector(TABLE_SELECTOR);
-    const ul = document.querySelector(UL_SELECTOR);
-    if (!table || !ul) return;
+    const chartNumber = window.prompt("enter the chart number");
+    const patientName = window.prompt("enter the patient name");
+    // const table = document.querySelector(TABLE_SELECTOR);
+    // const ul = document.querySelector(UL_SELECTOR);
+    // if (!table || !ul) return;
 
-    const chartNumber = document.querySelector("#chartNumber")?.textContent?.trim();
-    const patientName = document.querySelector("#patientName")?.textContent?.trim();
+    // const chartNumber = document.querySelector("#chartNumber")?.textContent?.trim();
+    // const patientName = document.querySelector("#patientName")?.textContent?.trim();
 
 
     if (!chartNumber || !patientName) {

@@ -6,27 +6,24 @@ const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 module.exports = {
   entry: {
     index: './src/index.js',
+    contentScript: './src/contentScript/index.jsx',
   },
   mode: 'production',
   module: {
     rules: [
       {
-        test: /\.js$/,
+        test: /\.(js|jsx)$/,
         use: {
           loader: 'babel-loader',
           options: {
-            presets: ['@babel/preset-env', '@babel/preset-react'],
+            presets: ['@babel/preset-env', ['@babel/preset-react', { runtime: 'automatic' }]],
           },
         },
         exclude: /node_modules/,
       },
       {
         test: /\.css$/i,
-        use: [
-          MiniCssExtractPlugin.loader,
-          'css-loader',
-          'postcss-loader',
-        ],
+        use: [MiniCssExtractPlugin.loader, 'css-loader'],
         exclude: /node_modules/,
       },
     ],
@@ -37,27 +34,26 @@ module.exports = {
     }),
     new CopyPlugin({
       patterns: [
-        { from: 'manifest.json', to: '../manifest.json' },
+        { from: 'manifest.json', to: 'manifest.json' },
+        { from: 'service_worker.js', to: 'service_worker.js' },
+        { from: 'styles.css', to: 'styles.css' },
+        { from: 'HOM-icon.png', to: 'HOM-icon.png' },
+        { from: 'HOM_Logo.svg', to: 'HOM_Logo.svg' },
+        { from: 'fonts', to: 'fonts' },
       ],
     }),
-    ...getHtmlPlugins(['index']),
+    new HTMLPlugin({
+      title: 'AADI Extension',
+      filename: 'index.html',
+      chunks: ['index'],
+    }),
   ],
   resolve: {
     extensions: ['.js', '.jsx'],
   },
   output: {
-    path: path.join(__dirname, 'dist/js'),
+    path: path.join(__dirname, 'dist'),
     filename: '[name].js',
+    clean: true,
   },
 };
-
-function getHtmlPlugins(chunks) {
-  return chunks.map(
-    (chunk) =>
-      new HTMLPlugin({
-        title: 'React extension',
-        filename: `${chunk}.html`,
-        chunks: [chunk],
-      })
-  );
-}

@@ -17,9 +17,8 @@
   "action": {
     "default_icon": {
       "8": "HOM-icon.png"
-      
     },
-  "default_title": "CareTracker Button Listener"
+    "default_title": "CareTracker Button Listener"
   },
   "content_scripts": [
     {
@@ -46,6 +45,5 @@
         "<all_urls>"
       ]
     }
-  ],
-  "options_page": "options.html"
+  ]
 }
